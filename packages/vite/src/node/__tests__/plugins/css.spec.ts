@@ -114,3 +114,46 @@ describe('css path resolutions', () => {
     mockFs.mockReset()
   })
 })
+
+describe('css source maps', () => {
+  test('cssmodule', async () => {
+    const config = await resolveConfig(
+      {
+        root: '/mock'
+      },
+      'serve'
+    )
+    const { transform, buildStart } = cssPlugin(config)
+
+    await buildStart.call({})
+
+    const { map } = await transform.call(
+      {
+        addWatchFile() {
+          return
+        }
+      },
+      `
+        .foo {
+          color: red;
+        }
+      `,
+      '/mock/foo.module.css'
+    )
+
+    expect(map).toStrictEqual({
+      file: '/mock/foo.module.css',
+      mappings: ';QACQ;UACE,UAAU;QACZ',
+      names: [],
+      sources: ['D:/mock/foo.module.css'],
+      sourcesContent: [
+        `
+        .foo {
+          color: red;
+        }
+      `
+      ],
+      version: 3
+    })
+  })
+})
