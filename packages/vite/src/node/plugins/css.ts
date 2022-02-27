@@ -822,7 +822,7 @@ async function compileCSS(
 function formatPostcssSourceMap(
   rawMap: RawSourceMap,
   file: string
-): SourceMapInput {
+): ExistingRawSourceMap {
   // remove <no source> from sources, to prevent source map to be combined incorrectly
   const noSourceIndices: number[] = []
   for (const [i, source] of rawMap.sources.entries()) {
