@@ -636,7 +636,7 @@ async function compileCSS(
     return { code }
   }
 
-  let map: ExistingRawSourceMap | string | undefined
+  let map: ExistingRawSourceMap | undefined
   let modules: Record<string, string> | undefined
   const deps = new Set<string>()
 
