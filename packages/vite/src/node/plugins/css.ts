@@ -676,8 +676,7 @@ async function compileCSS(
     }
 
     code = preprocessResult.code
-    // TODO: preprocessor source maps not supported currently
-    // map = preprocessResult.map
+    map = preprocessResult.map
     if (preprocessResult.deps) {
       preprocessResult.deps.forEach((dep) => {
         // sometimes sass registers the file itself as a dep
@@ -1047,7 +1046,7 @@ type SassStylePreprocessor = (
 
 export interface StylePreprocessorResults {
   code: string
-  map?: object
+  map?: ExistingRawSourceMap | string | undefined
   errors: RollupError[]
   deps: string[]
 }
@@ -1117,7 +1116,11 @@ const scss: SassStylePreprocessor = async (
     data: await getSource(source, options.filename, options.additionalData),
     file: options.filename,
     outFile: options.filename,
-    importer
+    importer,
+    sourceMap: true,
+    sourceMapContents: true,
+    omitSourceMapUrl: true,
+    sourceMapRoot: root
   }
 
   try {
@@ -1131,9 +1134,13 @@ const scss: SassStylePreprocessor = async (
       })
     })
     const deps = result.stats.includedFiles
+    const map: ExistingRawSourceMap | undefined = result.map
+      ? JSON.parse(result.map?.toString())
+      : undefined
 
     return {
       code: result.css.toString(),
+      map,
       errors: [],
       deps
     }
