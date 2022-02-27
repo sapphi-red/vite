@@ -553,7 +553,9 @@ export function combineSourcemaps(
   } else {
     map = remapping(
       sourcemapList[0],
-      function loader(sourcefile) {
+      function loader(sourcefile, ctx) {
+        // TODO: comment
+        ctx.source = ''
         if (sourcefile === filename && sourcemapList[mapIndex]) {
           return sourcemapList[mapIndex++]
         } else {

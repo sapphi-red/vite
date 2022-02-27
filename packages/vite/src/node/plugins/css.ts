@@ -12,7 +12,8 @@ import {
   normalizePath,
   processSrcSet,
   parseRequest,
-  genSourceMapUrl
+  genSourceMapUrl,
+  combineSourcemaps
 } from '../utils'
 import type { Plugin } from '../plugin'
 import type { ResolvedConfig } from '../config'
@@ -636,7 +637,7 @@ async function compileCSS(
     return { code }
   }
 
-  let map: ExistingRawSourceMap | undefined
+  let preprocessorMap: ExistingRawSourceMap | undefined
   let modules: Record<string, string> | undefined
   const deps = new Set<string>()
 
@@ -676,7 +677,7 @@ async function compileCSS(
     }
 
     code = preprocessResult.code
-    map = preprocessResult.map
+    preprocessorMap = preprocessResult.map
     if (preprocessResult.deps) {
       preprocessResult.deps.forEach((dep) => {
         // sometimes sass registers the file itself as a dep
@@ -750,7 +751,7 @@ async function compileCSS(
   if (!postcssPlugins.length) {
     return {
       code,
-      map
+      map: preprocessorMap
     }
   }
 
@@ -763,10 +764,9 @@ async function compileCSS(
       from: id,
       map: {
         inline: false,
-        annotation: false,
+        annotation: false
         // using "absolute: true" makes `postcssResult.map.sourcesContent` null
-        // absolute: true,
-        prev: map
+        // absolute: true
       }
     })
 
@@ -810,18 +810,30 @@ async function compileCSS(
     }
   }
 
+  const postcssMap = formatPostcssSourceMap(postcssResult.map.toJSON(), id)
+
+  if (id.includes('DMChannelElementName.vue'))
+    // eslint-disable-next-line no-console
+    console.log(preprocessorMap, postcssMap)
+  const combinedMap = preprocessorMap
+    ? combineSourcemaps(id, [
+        { ...postcssMap, version: 3 },
+        { ...preprocessorMap, version: 3 }
+      ])
+    : postcssMap
+
   return {
     ast: postcssResult,
     code: postcssResult.css,
-    map: formatPostcssSourceMap(postcssResult.map.toJSON(), cleanUrl(id)),
+    map: combinedMap as ExistingRawSourceMap,
     modules,
     deps
   }
 }
 
-function formatPostcssSourceMap(
+export function formatPostcssSourceMap(
   rawMap: RawSourceMap,
-  file: string
+  id: string
 ): ExistingRawSourceMap {
   // remove <no source> from sources, to prevent source map to be combined incorrectly
   const noSourceIndices: number[] = []
@@ -831,18 +843,16 @@ function formatPostcssSourceMap(
     }
   }
 
-  const sources = rawMap.sources
-    .filter((_, i) => !noSourceIndices.includes(i))
-    .map((source) => normalizePath(path.resolve(path.dirname(file), source)))
-
+  const sources = rawMap.sources.filter((_, i) => !noSourceIndices.includes(i))
   const sourcesContent =
     rawMap.sourcesContent?.filter((_, i) => !noSourceIndices.includes(i)) ?? []
 
   return {
-    file,
+    file: path.basename(id),
     mappings: rawMap.mappings,
     names: rawMap.names,
     sources,
+    sourceRoot: normalizePath(path.dirname(id)),
     sourcesContent,
     version: +rawMap.version
   }

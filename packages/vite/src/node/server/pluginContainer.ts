@@ -409,6 +409,9 @@ export async function createPluginContainer(
 
     _getCombinedSourcemap(createIfNull = false) {
       let combinedMap = this.combinedMap
+      if (this.filename.includes('PreProcessor')) {
+        // console.log('pp', this.sourcemapChain)
+      }
       for (let m of this.sourcemapChain) {
         if (typeof m === 'string') m = JSON.parse(m)
         if (!('version' in (m as SourceMap))) {
@@ -595,6 +598,10 @@ export async function createPluginContainer(
           if (result.code !== undefined) {
             code = result.code
             if (result.map) {
+              if (id.includes('DMChannelElementName.vue')) {
+                // eslint-disable-next-line no-console
+                console.log('chain', plugin.name, result.map)
+              }
               ctx.sourcemapChain.push(result.map)
             }
           }
