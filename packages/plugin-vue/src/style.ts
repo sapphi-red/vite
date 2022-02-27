@@ -1,6 +1,7 @@
 import type { SFCDescriptor } from 'vue/compiler-sfc'
 import type { TransformPluginContext } from 'rollup'
 import type { ResolvedOptions } from '.'
+import { formatPostcssSourceMap } from 'vite'
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function transformStyle(
@@ -19,7 +20,13 @@ export async function transformStyle(
     id: `data-v-${descriptor.id}`,
     isProd: options.isProduction,
     source: code,
-    scoped: block.scoped
+    scoped: block.scoped,
+    postcssOptions: {
+      map: {
+        inline: false,
+        annotation: false
+      }
+    }
   })
 
   if (result.errors.length) {
@@ -36,8 +43,12 @@ export async function transformStyle(
     return null
   }
 
+  const map = result.map
+    ? formatPostcssSourceMap(result.map, descriptor.filename)
+    : ({ mappings: '' } as any)
+
   return {
     code: result.code,
-    map: result.map || ({ mappings: '' } as any)
+    map
   }
 }

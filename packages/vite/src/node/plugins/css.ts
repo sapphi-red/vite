@@ -840,7 +840,7 @@ async function compileCSS(
   }
 }
 
-function formatPostcssSourceMap(
+export function formatPostcssSourceMap(
   rawMap: RawSourceMap,
   file: string
 ): ExistingRawSourceMap {
