@@ -1046,7 +1046,7 @@ type SassStylePreprocessor = (
 
 export interface StylePreprocessorResults {
   code: string
-  map?: ExistingRawSourceMap | string | undefined
+  map?: ExistingRawSourceMap | undefined
   errors: RollupError[]
   deps: string[]
 }
@@ -1120,7 +1120,7 @@ const scss: SassStylePreprocessor = async (
     sourceMap: true,
     sourceMapContents: true,
     omitSourceMapUrl: true,
-    sourceMapRoot: root
+    sourceMapRoot: path.dirname(options.filename)
   }
 
   try {
