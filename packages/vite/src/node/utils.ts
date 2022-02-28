@@ -3,7 +3,7 @@ import colors from 'picocolors'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { pathToFileURL, URL } from 'url'
+import { fileURLToPath, pathToFileURL, URL } from 'url'
 import {
   FS_PREFIX,
   DEFAULT_EXTENSIONS,
@@ -543,6 +543,25 @@ export function combineSourcemaps(
     return { ...nullSourceMap }
   }
 
+  // FIXME: hack for @ parse broken with `@jridgewell/resolve-uri`
+  sourcemapList.forEach((sourcemap) => {
+    sourcemap.sources = sourcemap.sources.map(
+      (source) => source?.replace(/@/g, '____atmark____') ?? null
+    )
+  })
+  filename = filename.replace(/@/g, '____atmark____')
+
+  sourcemapList.forEach((sourcemap) => {
+    sourcemap.sources = sourcemap.sources.map((source) =>
+      source
+        ? path.isAbsolute(source)
+          ? pathToFileURL(source).href
+          : source
+        : source
+    )
+  })
+  filename = path.isAbsolute(filename) ? pathToFileURL(filename).href : filename
+
   // We don't declare type here so we can convert/fake/map as RawSourceMap
   let map //: SourceMap
   let mapIndex = 1
@@ -566,6 +585,17 @@ export function combineSourcemaps(
   if (!map.file) {
     delete map.file
   }
+
+  // FIXME: hack for @ parse broken with `@jridgewell/resolve-uri`
+  map.sources = map.sources.map(
+    (source) => source?.replace(/____atmark____/g, '@') ?? null
+  )
+
+  map.sources = map.sources.map((source) =>
+    source?.startsWith('file://')
+      ? normalizePath(fileURLToPath(source))
+      : source
+  )
 
   return map as RawSourceMap
 }

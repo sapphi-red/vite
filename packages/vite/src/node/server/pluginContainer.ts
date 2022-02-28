@@ -50,7 +50,7 @@ import type {
 } from 'rollup'
 import * as acorn from 'acorn'
 import type { RawSourceMap } from '@ampproject/remapping/dist/types/types'
-import { combineSourcemaps } from '../utils'
+import { cleanUrl, combineSourcemaps } from '../utils'
 import MagicString from 'magic-string'
 import type { FSWatcher } from 'chokidar'
 import {
@@ -570,7 +570,7 @@ export async function createPluginContainer(
     async transform(code, id, options) {
       const inMap = options?.inMap
       const ssr = options?.ssr
-      const ctx = new TransformContext(id, code, inMap as SourceMap)
+      const ctx = new TransformContext(cleanUrl(id), code, inMap as SourceMap)
       ctx.ssr = !!ssr
       for (const plugin of plugins) {
         if (!plugin.transform) continue

@@ -49,6 +49,7 @@ import type { ModuleNode } from '../server/moduleGraph'
 import { transform, formatMessages } from 'esbuild'
 import { addToHTMLProxyTransformResult } from './html'
 import type { RawSourceMap } from 'source-map-js'
+import { injectSourcesContent } from '../server/sourcemap'
 
 const isDebug = process.env.DEBUG
 
@@ -311,6 +312,8 @@ export function cssPostPlugin(config: ResolvedConfig): Plugin {
 
           let cssContent = css
           const sourcemap = this.getCombinedSourcemap()
+          await injectSourcesContent(sourcemap, cleanUrl(id), config.logger)
+
           if (isDebug) {
             cssContent += `\n/*${JSON.stringify(sourcemap, null, 2).replace(
               /\*\//g,
