@@ -543,6 +543,14 @@ export function combineSourcemaps(
     return { ...nullSourceMap }
   }
 
+  // FIXME: hack for @ parse broken with `@jridgewell/resolve-uri`
+  sourcemapList.forEach((sourcemap) => {
+    sourcemap.sources = sourcemap.sources.map(
+      (source) => source?.replace(/@/g, '____atmark____') ?? null
+    )
+  })
+  filename = filename.replace(/@/g, '____atmark____')
+
   // We don't declare type here so we can convert/fake/map as RawSourceMap
   let map //: SourceMap
   let mapIndex = 1
@@ -566,6 +574,11 @@ export function combineSourcemaps(
   if (!map.file) {
     delete map.file
   }
+
+  // FIXME: hack for @ parse broken with `@jridgewell/resolve-uri`
+  map.sources = map.sources.map(
+    (source) => source?.replace(/____atmark____/g, '@') ?? null
+  )
 
   return map as RawSourceMap
 }
