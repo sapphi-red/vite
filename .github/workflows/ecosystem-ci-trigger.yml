@@ -1,0 +1,62 @@
+name: ecosystem-ci trigger
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  trigger-all:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/ecosystem-ci run')
+    steps:
+      - uses: actions/github-script@v6
+        id: trigger
+        with:
+          # this token needs "repo" scope
+          github-token: ${{ secrets.ECOSYSTEM_CI_TRIGGER_GITHUB_PAT }}
+          result-encoding: string
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            })
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: 'vite-ecosystem-ci',
+              workflow_id: 'ecosystem-ci.yml',
+              ref: 'main',
+              inputs: {
+                refType: 'branch',
+                ref: pr.head.ref,
+                repo: pr.head.repo.full_name
+              }
+            })
+
+            // assumes the first one is the one triggered
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: 'vite-ecosystem-ci',
+              workflow_id: 'ecosystem-ci.yml',
+              event: 'workflow_dispatch',
+              per_page: 1
+            })
+
+            const workflowURL = runs.total_count < 0 ? '' : runs.workflow_runs[0].html_url
+            return workflowURL
+
+      - uses: actions/github-script@v6
+        env:
+          WORKFLOW_URL: ${{ steps.trigger.outputs.result }}
+        with:
+          github-token: ${{ secrets.ECOSYSTEM_CI_TRIGGER_GITHUB_PAT }}
+          script: |
+            const url = process.env.WORKFLOW_URL
+            const urlLink = url === '' ? '(failed to obtain workflow run URL)' : `[Open](${url})`
+            await github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `⏳ Triggered ecosystem CI: ${urlLink}`
+            }
