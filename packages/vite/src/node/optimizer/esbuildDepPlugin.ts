@@ -169,10 +169,7 @@ export function esbuildDepPlugin(
       }
 
       build.onResolve({ filter: /./ }, async ({ path: id, importer, kind }) => {
-        if (
-          /^[\w@][^:]/.test(id) &&
-          moduleListContains(external, id)
-        ) {
+        if (/^[\w@][^:]/.test(id) && moduleListContains(external, id)) {
           return {
             path: id,
             external: true
