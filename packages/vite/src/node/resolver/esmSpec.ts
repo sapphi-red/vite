@@ -23,7 +23,8 @@ export async function packageSelfResolve(
       packagePath,
       pkgJson,
       subpath,
-      opts.conditions
+      opts.conditions,
+      opts.preserveSymlinks
     )
   }
 
@@ -69,4 +70,24 @@ async function lookupPackageScope(p: string): Promise<string | null> {
     slashIndex = p.lastIndexOf('/', slashIndex - 1)
   }
   return null
+}
+
+export async function esmFileFormat(
+  p: string
+): Promise<'module' | 'commonjs' | 'json' | null> {
+  if (p.endsWith('.mjs')) return 'module'
+  if (p.endsWith('.cjs')) return 'commonjs'
+  if (p.endsWith('.json')) return 'json'
+  if (!p.endsWith('.js')) return null
+
+  const packagePath = await lookupPackageScope(p)
+  if (packagePath == null) return 'commonjs'
+
+  const pkgJsonResult = await readPackageJson(packagePath)
+  if (!pkgJsonResult || 'error' in pkgJsonResult) return 'commonjs'
+
+  if (pkgJsonResult.result.type === 'module') {
+    return 'module'
+  }
+  return 'commonjs'
 }

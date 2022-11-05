@@ -11,7 +11,7 @@ import { fsStat } from './fsUtils'
 import type { RequiredInternalResolveOptions } from './options'
 import { loadAsFileOrDirectory, loadNodeModules } from './cjsSpec'
 import type { ResolveResult } from './customUtils'
-import { interpretPackageName } from './customUtils'
+import { interpretPackageName, resolveRealPath } from './customUtils'
 import { packageSelfResolve } from './esmSpec'
 
 export async function resolveAbsolute(
@@ -23,7 +23,7 @@ export async function resolveAbsolute(
     const path = url.fileURLToPath(id)
     const stat = await fsStat(path)
     if (stat) {
-      return { id: path }
+      return { id: await resolveRealPath(path, opts.preserveSymlinks) }
     }
     return { error: `File not found: ${JSON.stringify(path)}` }
   }
@@ -43,7 +43,7 @@ export async function resolveAbsolute(
   if ((!isWindows && id.startsWith('/')) || (isWindows && /^\w:/.test(id))) {
     const stat = await fsStat(id)
     if (stat) {
-      return { id }
+      return { id: await resolveRealPath(id, opts.preserveSymlinks) }
     }
   }
   return { error: `File not found: ${JSON.stringify(id)}` }
@@ -54,25 +54,30 @@ export async function pathResolve(
   importer: string,
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
-  const absolute = normalizePath(path.resolve(importer, id))
+  const absolute = normalizePath(path.resolve(path.dirname(importer), id))
   // 3.a. and 3.b.
   const resolved = await loadAsFileOrDirectory(absolute, true, opts)
   if (resolved) {
     return resolved
   }
-  return { error: `Failed to resolve: ${JSON.stringify(absolute)}` }
+  return {
+    error: `Failed to resolve: ${JSON.stringify(id)} at ${JSON.stringify(
+      importer
+    )} ${absolute}`
+  }
 }
 
 export async function packageResolve(
   id: string,
   importer: string,
-  opts: RequiredInternalResolveOptions
+  opts: RequiredInternalResolveOptions,
+  external: boolean
 ): Promise<ResolveResult> {
   // 2.
   if (id === '') return null
   // 3.
-  if (!opts.allowCoreModuleOverride && isBuiltinModule(id)) {
-    return { id }
+  if (opts.nodeBuiltin === 'only-builtin' && isBuiltinModule(id)) {
+    return { id, external: true }
   }
 
   // 4. - 6.
@@ -86,14 +91,22 @@ export async function packageResolve(
   }
 
   // 9. - 10.
-  const resolved = await loadNodeModules(pkgName, subpath, importer, opts)
+  const resolved = await loadNodeModules(
+    pkgName,
+    subpath,
+    importer,
+    opts,
+    external
+  )
   if (resolved) {
     return resolved
   }
 
-  if (opts.allowCoreModuleOverride && isBuiltinModule(id)) {
-    // TODO
-    return { id }
+  if (opts.nodeBuiltin !== 'only-builtin' && isBuiltinModule(id)) {
+    if (typeof opts.nodeBuiltin === 'function') {
+      return await opts.nodeBuiltin(id, importer)
+    }
+    return { id, external: true }
   }
 
   return null

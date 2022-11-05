@@ -5,7 +5,8 @@ import type { HookHandler, Plugin } from '../plugin'
 import { getDepsOptimizer } from '../optimizer'
 import { shouldExternalizeForSSR } from '../ssr/ssrExternal'
 import { jsonPlugin } from './json'
-import { resolvePlugin } from './resolve'
+// import { resolvePlugin } from './resolve'
+import { overhauledResolvePlugin } from './newResolve'
 import { optimizedDepsBuildPlugin, optimizedDepsPlugin } from './optimizedDeps'
 import { esbuildPlugin } from './esbuild'
 import { importAnalysisPlugin } from './importAnalysis'
@@ -57,14 +58,33 @@ export async function resolvePlugins(
             : optimizedDepsPlugin(config)
         ]
       : []),
-    resolvePlugin({
-      ...config.resolve,
+    // resolvePlugin({
+    //   ...config.resolve,
+    //   root: config.root,
+    //   isProduction: config.isProduction,
+    //   isBuild,
+    //   packageCache: config.packageCache,
+    //   ssrConfig: config.ssr,
+    //   asSrc: true,
+    //   getDepsOptimizer: (ssr: boolean) => getDepsOptimizer(config, ssr),
+    //   shouldExternalize:
+    //     isBuild && config.build.ssr && config.ssr?.format !== 'cjs'
+    //       ? (id) => shouldExternalizeForSSR(id, config)
+    //       : undefined
+    // }),
+    overhauledResolvePlugin({
       root: config.root,
+      mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main'], // config.resolve.mainFields,
+      extensions: ['mts', 'ts', 'tsx', 'mjs', 'js', 'cjs', 'jsx'], // TODO config.resolve.extensions,
+      conditions: ['browser', 'import', 'module', ...config.resolve.conditions],
+      preserveSymlinks: config.resolve.preserveSymlinks,
+      preferRelative: false,
+
       isProduction: config.isProduction,
+
       isBuild,
-      packageCache: config.packageCache,
-      ssrConfig: config.ssr,
       asSrc: true,
+      ssrConfig: config.ssr,
       getDepsOptimizer: (ssr: boolean) => getDepsOptimizer(config, ssr),
       shouldExternalize:
         isBuild && config.build.ssr && config.ssr?.format !== 'cjs'

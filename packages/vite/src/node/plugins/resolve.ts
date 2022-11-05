@@ -46,8 +46,8 @@ import type { PackageCache, PackageData } from '../packages'
 import { loadPackageData, resolvePackageData } from '../packages'
 import { isWorkerRequest } from './worker'
 
-const normalizedClientEntry = normalizePath(CLIENT_ENTRY)
-const normalizedEnvEntry = normalizePath(ENV_ENTRY)
+export const normalizedClientEntry = normalizePath(CLIENT_ENTRY)
+export const normalizedEnvEntry = normalizePath(ENV_ENTRY)
 
 // special id for paths marked with browser: false
 // https://github.com/defunctzombie/package-browser-field-spec#ignore-a-module
@@ -55,7 +55,7 @@ export const browserExternalId = '__vite-browser-external'
 // special id for packages that are optional peer deps
 export const optionalPeerDepId = '__vite-optional-peer-dep'
 
-const nodeModulesInPathRE = /(?:^|\/)node_modules\//
+export const nodeModulesInPathRE = /(?:^|\/)node_modules\//
 
 const isDebug = process.env.DEBUG
 const debug = createDebugger('vite:resolve-details', {

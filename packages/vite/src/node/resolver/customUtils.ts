@@ -1,16 +1,16 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { resolve as resolveExports } from 'resolve.exports'
+import { normalizePath } from '../utils'
 import { fsReadFile, fsStat } from './fsUtils'
 
-export type ResolveResult =
-  | null
-  | {
-      id: string
-      external?: boolean
-      moduleSideEffects?: boolean | 'no-treeshake'
-    }
-  | { error: string }
+export type NonErrorResolveResult = {
+  id: string
+  external?: boolean
+  moduleSideEffects?: boolean | 'no-treeshake'
+}
+
+export type ResolveResult = null | NonErrorResolveResult | { error: string }
 
 const EXPORTS_PATTERN = /^((?:@[^/\\%]+\/)?[^./\\%][^/\\%]*)(\/.*)?$/
 export function interpretPackageName(
@@ -23,31 +23,33 @@ export function interpretPackageName(
 }
 
 export async function resolvePackageExports(
-  pkgPath: string,
+  pkgDir: string,
   pkgJson: Record<string, any>,
   subpath: string,
-  conditions: string[]
+  conditions: string[],
+  preserveSymlinks: boolean
 ): Promise<ResolveResult> {
-  const resolved = resolveExports(pkgJson, `.${subpath}`, {
+  const relativeResolved = resolveExports(pkgJson, `.${subpath}`, {
     unsafe: true,
     conditions
   })
-  if (resolved) {
+  if (relativeResolved) {
+    const resolved = normalizePath(path.resolve(pkgDir, relativeResolved))
     const stat = await fsStat(resolved)
     if (stat) {
-      return { id: resolved }
+      return { id: await resolveRealPath(resolved, preserveSymlinks) }
     }
     return {
       error: `exports field of ${JSON.stringify(
-        pkgPath
-      )} resolves ${JSON.stringify(subpath)} to ${JSON.stringify(
+        pkgDir
+      )} resolves ${JSON.stringify(`.${subpath}`)} to ${JSON.stringify(
         resolved
       )} but that file doesn't exist.`
     }
   }
   return {
     error: `${JSON.stringify(subpath)} is not exported from ${JSON.stringify(
-      pkgPath
+      pkgDir
     )}.`
   }
 }
@@ -83,5 +85,25 @@ export async function resolveRealPath(
   resolved: string,
   preserveSymlinks: boolean
 ): Promise<string> {
-  return preserveSymlinks ? resolved : fs.realpath(resolved)
+  if (preserveSymlinks) return resolved
+  return normalizePath(await fs.realpath(resolved))
+}
+
+export function resolveExternalized(
+  result: Exclude<ResolveResult, null>,
+  specifierToBeUsed?: string
+): ResolveResult {
+  if ('error' in result) return result
+
+  // don't externalize non-js imports
+  if (!/^\.[mc]?js$/.test(path.extname(result.id))) {
+    return result
+  }
+
+  if (specifierToBeUsed) {
+    result.id = specifierToBeUsed
+  }
+  result.external = true
+
+  return result
 }

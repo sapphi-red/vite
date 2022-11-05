@@ -1,6 +1,6 @@
 import path from 'node:path'
 import type { ResolveIdResult } from 'rollup'
-import { isDataUrl, isExternalUrl, isWindows } from '../utils'
+import { isDataUrl, isExternalUrl, isWindows, normalizePath } from '../utils'
 import type {
   InternalResolveOptions,
   RequiredInternalResolveOptions
@@ -12,12 +12,24 @@ import {
 import type { ResolveResult } from './customUtils'
 import { resolveRealPath } from './customUtils'
 import { packageResolve, pathResolve, resolveAbsolute } from './resolvers'
+import { fsStat } from './fsUtils'
+import { tryWithAndWithoutPostfix } from './postfix'
+import { resolveNestedSelectedPackages } from './cjsSpec'
+import { esmFileFormat } from './esmSpec'
 
 type Resolver = (
   id: string,
-  importer: string,
+  importer?: string,
   overrideOptions?: InternalResolveOptions
 ) => Promise<ResolveIdResult>
+
+// TODO: TypeScript
+// TODO: browser field
+// TODO: debug
+// TODO: sideEffect field
+// TODO: optional deps
+
+// NOTE: run resolveRealPath when that function returns ResolveResult
 
 export function createResolver(options: InternalResolveOptions): Resolver {
   const resolvedOptions = shallowMergeNonUndefined(
@@ -25,22 +37,36 @@ export function createResolver(options: InternalResolveOptions): Resolver {
     options
   )
 
+  const resolve = tryWithAndWithoutPostfix(innerResolve)
+
   return async (id, importer, overrideOptions) => {
     const opts = overrideOptions
       ? shallowMergeNonUndefined(resolvedOptions, overrideOptions)
       : resolvedOptions
-    const resolvedImporter = path.resolve(opts.root, importer)
+    const resolvedImporter = importer
+      ? normalizePath(path.resolve(opts.root, importer))
+      : opts.root
 
-    const resolved = await innerResolve(id, resolvedImporter, opts)
-    if (!resolved) {
+    opts.conditions = opts.conditions.filter((condition) => {
+      switch (condition) {
+        case 'import':
+          return !opts.isRequire
+        case 'require':
+          return opts.isRequire
+        case 'production':
+          return opts.isProduction
+        case 'development':
+          return !opts.isProduction
+      }
+      return true
+    })
+
+    const resolved = await resolve(id, resolvedImporter, opts)
+    if (resolved) {
+      if ('error' in resolved) {
+        throw new Error(resolved.error)
+      }
       return resolved
-    }
-    if ('error' in resolved) {
-      throw new Error(resolved.error)
-    }
-    return {
-      ...resolved,
-      id: await resolveRealPath(resolved.id, opts.preserveSymlinks)
     }
   }
 }
@@ -57,7 +83,14 @@ async function innerResolve(
     id.startsWith('/') ||
     (isWindows && /^\w:/.test(id))
   ) {
-    return await pathResolve(id, importer, opts)
+    const resolved = await pathResolve(id, importer, opts)
+    // ignore not found if id starts with /
+    if (id.startsWith('/')) {
+      if (resolved && 'error' in resolved) {
+        return null
+      }
+    }
+    return resolved
   }
 
   // 3.
@@ -74,11 +107,57 @@ async function innerResolve(
     return null
   }
 
+  if (opts.preferRelative && /^\w/.test(id)) {
+    const result = await pathResolve(id, importer, opts)
+    if (result && !('error' in result)) {
+      return result
+    }
+  }
+
+  const external = opts.shouldExternalize?.(id) ?? false
+
+  if (opts.prePackageResolve) {
+    const resolved = await opts.prePackageResolve(id, importer, external)
+    if (resolved) {
+      return resolved
+    }
+  }
+
+  if (opts.supportNestedSelectedPackages && id.includes('>')) {
+    ;[id, importer] = await resolveNestedSelectedPackages(id, importer)
+  }
+
   // 5.
-  const resolved = await packageResolve(id, importer, opts)
+  const resolved = await packageResolve(id, importer, opts, external)
   if (resolved) {
-    return await resolveAbsolute(id, opts)
+    if (opts.postPackageResolve && !('error' in resolved)) {
+      const isResolvedFileFormat = await esmFileFormat(resolved.id)
+      const newId = await opts.postPackageResolve(
+        id,
+        resolved,
+        isResolvedFileFormat === 'commonjs'
+      )
+      if (resolved.id !== newId) {
+        resolved.id = newId
+      }
+      return resolved
+    }
+    return resolved
   }
 
   return null
 }
+
+export const resolveFile = tryWithAndWithoutPostfix(
+  async (
+    id: string,
+    _: undefined,
+    preserveSymlinks: boolean
+  ): Promise<{ id: string } | { error: string }> => {
+    const stat = await fsStat(id)
+    if (stat) {
+      return { id: await resolveRealPath(id, preserveSymlinks) }
+    }
+    return { error: `File not found: ${JSON.stringify(id)}` }
+  }
+)

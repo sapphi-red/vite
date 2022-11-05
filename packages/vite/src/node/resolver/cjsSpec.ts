@@ -1,10 +1,21 @@
 import path from 'node:path'
+import fs from 'node:fs/promises'
+import { hasESMSyntax } from 'mlly'
 import { normalizePath } from '../utils'
 import type { ResolveResult } from './customUtils'
-import { readPackageJson, resolvePackageExports } from './customUtils'
+import {
+  readPackageJson,
+  resolveExternalized,
+  resolvePackageExports,
+  resolveRealPath
+} from './customUtils'
 import { fsStat } from './fsUtils'
 import type { RequiredInternalResolveOptions } from './options'
+import { resolveBrowserField } from './browserField'
 
+/**
+ * NOTE: this function doesn't resolve without extension
+ */
 export async function loadAsFile(
   p: string,
   exts: string[]
@@ -20,59 +31,132 @@ export async function loadAsFile(
 }
 
 export function loadIndex(dir: string, exts: string[]): Promise<string | null> {
-  const joined = path.resolve(dir, 'index')
+  const joined = normalizePath(path.resolve(dir, 'index'))
   return loadAsFile(joined, exts)
 }
 
 export async function loadAsDirectory(
-  p: string,
+  dir: string,
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
   // 1.
-  const pkgJsonResult = await readPackageJson(p)
-  if (pkgJsonResult == null || 'error' in pkgJsonResult) return pkgJsonResult
+  const pkgJsonResult = await readPackageJson(dir)
+  if (pkgJsonResult != null) {
+    if ('error' in pkgJsonResult) return pkgJsonResult
+    const pkgJson = pkgJsonResult.result
 
-  const pkgJson = pkgJsonResult.result
-  if (pkgJson && pkgJson.main) {
-    // 1.c.
-    const joined = normalizePath(path.resolve(p, pkgJson.main))
-    const joinedStat = await fsStat(joined)
-    if (joinedStat) {
-      // 1.d.
-      if (joinedStat.isFile()) {
-        return { id: joined }
-      }
-      // 1.e.
-      const resolved = await loadIndex(joined, opts.extensions)
-      if (resolved) {
-        return { id: resolved }
+    let entryPoint: { field: string; value: string } | undefined
+
+    if (opts.mainFields.includes('browser') && pkgJson.browser) {
+      const browserEntry = resolveBrowserField(pkgJson.browser, '.')
+      if (browserEntry) {
+        const resolvedBrowserEntry = await loadMainField(
+          dir,
+          'browser',
+          browserEntry,
+          opts
+        )
+        if ('error' in resolvedBrowserEntry) {
+          return resolvedBrowserEntry
+        }
+
+        const moduleEntry: string = pkgJson.module
+        if (
+          !opts.isRequire &&
+          opts.mainFields.includes('module') &&
+          moduleEntry &&
+          moduleEntry !== browserEntry
+        ) {
+          // if both are present, we may have a problem: some package points both
+          // to ESM, with "module" targeting Node.js, while some packages points
+          // "module" to browser ESM and "browser" to UMD/IIFE.
+          // the heuristics here is to actually read the browser entry when
+          // possible and check for hints of ESM. If it is not ESM, prefer "module"
+          // instead; Otherwise, assume it's ESM and use it.
+
+          const content = await fs.readFile(resolvedBrowserEntry.id, 'utf-8')
+          if (hasESMSyntax(content)) {
+            // likely ESM, prefer browser
+            return resolvedBrowserEntry
+          } else {
+            // non-ESM, UMD or IIFE or CJS(!!! e.g. firebase 7.x), prefer module
+            entryPoint = { field: 'module', value: moduleEntry }
+          }
+        } else {
+          return resolvedBrowserEntry
+        }
       }
     }
-    // 1.f. (deprecated)
-    const resolved = await loadIndex(p, opts.extensions)
-    if (resolved) {
-      return { id: resolved }
+
+    if (!entryPoint) {
+      for (const field of opts.mainFields) {
+        if (field === 'browser') continue // already checked above
+
+        if (pkgJson[field]) {
+          entryPoint = { field, value: pkgJson[field] }
+          break
+        }
+      }
     }
-    return {
-      error: `main field of ${JSON.stringify(p)} has ${JSON.stringify(
-        pkgJson.main
-      )} but that doesn't resolve to any file.`
+    if (entryPoint) {
+      // 1.c. - 1.e.
+      return await loadMainField(dir, entryPoint.field, entryPoint.value, opts)
+      // NOTE: doesn't support 1.f.
     }
   }
 
   // 2.
-  const resolved = await loadIndex(p, opts.extensions)
+  const resolved = await loadIndex(dir, opts.extensions)
   if (resolved) {
-    return { id: resolved }
+    return { id: await resolveRealPath(resolved, opts.preserveSymlinks) }
   }
   return null
+}
+
+/**
+ * LOAD_AS_DIRECTORY 1.c. - 1.e.
+ */
+async function loadMainField(
+  dir: string,
+  fieldName: string,
+  fieldValue: string,
+  opts: RequiredInternalResolveOptions
+): Promise<{ id: string } | { error: string }> {
+  // 1.c.
+  const joined = normalizePath(path.resolve(dir, fieldValue))
+  const joinedStat = await fsStat(joined)
+  // 1.d. (no extension)
+  if (joinedStat?.isFile()) {
+    return { id: await resolveRealPath(joined, opts.preserveSymlinks) }
+  }
+  // 1.d. (with extension)
+  const resolvedF = await loadAsFile(dir, opts.extensions)
+  if (resolvedF) {
+    return { id: await resolveRealPath(resolvedF, opts.preserveSymlinks) }
+  }
+  // 1.e.
+  if (joinedStat) {
+    const resolvedE = await loadIndex(joined, opts.extensions)
+    if (resolvedE) {
+      return { id: await resolveRealPath(resolvedE, opts.preserveSymlinks) }
+    }
+  }
+
+  return {
+    error: `${JSON.stringify(
+      fieldName
+    )} field exists in package.json of ${JSON.stringify(
+      dir
+    )} but doesn't resolve to any file.`
+  }
 }
 
 export async function loadNodeModules(
   pkgName: string,
   subpath: string,
   importer: string,
-  opts: RequiredInternalResolveOptions
+  opts: RequiredInternalResolveOptions,
+  external: boolean
 ): Promise<ResolveResult> {
   const importerDir = normalizePath(path.dirname(importer))
   const dirs = nodeModulesPaths(importerDir)
@@ -80,6 +164,9 @@ export async function loadNodeModules(
     // 2.1.
     const resolvedE = await loadPackageExports(pkgName, subpath, dir, opts)
     if (resolvedE) {
+      if (external) {
+        return resolveExternalized(resolvedE, `${pkgName}/${subpath}`)
+      }
       return resolvedE
     }
 
@@ -87,6 +174,9 @@ export async function loadNodeModules(
     // 2.2. and 2.3.
     const resolvedF = await loadAsFileOrDirectory(joined, subpath !== '.', opts)
     if (resolvedF) {
+      if (external) {
+        return resolveExternalized(resolvedF)
+      }
       return resolvedF
     }
   }
@@ -94,10 +184,10 @@ export async function loadNodeModules(
 }
 
 function nodeModulesPaths(dir: string): string[] {
-  let slashIndex = dir.lastIndexOf('/')
+  let slashIndex = dir.length
   const dirs: string[] = []
   while (slashIndex > 0) {
-    const former = dir.slice(0, slashIndex)
+    const former = dir.slice(0, slashIndex + 1)
     const latter = dir.slice(slashIndex + 1)
     if (latter === 'node_modules' || latter.startsWith('node_modules/')) {
       continue
@@ -123,7 +213,13 @@ async function loadPackageExports(
   if (!pkgJson || !pkgJson.exports) return null
 
   // 5.
-  return await resolvePackageExports(pkgDir, pkgJson, subpath, opts.conditions)
+  return await resolvePackageExports(
+    pkgDir,
+    pkgJson,
+    subpath,
+    opts.conditions,
+    opts.preserveSymlinks
+  )
 }
 
 /**
@@ -135,19 +231,23 @@ export async function loadAsFileOrDirectory(
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
   const joinedStat = await fsStat(dir)
-  if (joinedStat) {
-    // loadAsFile (no extension)
-    if (joinedStat.isFile()) {
-      return enableFile ? { id: dir } : null
-    }
+  // loadAsFile (no extension)
+  if (joinedStat?.isFile()) {
     if (enableFile) {
-      // loadAsFile (with extension)
-      const resolved = await loadAsFile(dir, opts.extensions)
-      if (resolved) {
-        return { id: resolved }
-      }
+      return { id: await resolveRealPath(dir, opts.preserveSymlinks) }
     }
+    return null
+  }
 
+  if (enableFile) {
+    // loadAsFile (with extension)
+    const resolved = await loadAsFile(dir, opts.extensions)
+    if (resolved) {
+      return { id: await resolveRealPath(resolved, opts.preserveSymlinks) }
+    }
+  }
+
+  if (joinedStat) {
     // loadAsDir
     const resolved = await loadAsDirectory(dir, opts)
     if (resolved) {
@@ -155,4 +255,34 @@ export async function loadAsFileOrDirectory(
     }
   }
   return null
+}
+
+/**
+ * doesn't exist in CJS require spec
+ */
+export async function resolveNestedSelectedPackages(
+  id: string,
+  importer: string
+): Promise<[id: string, importer: string]> {
+  // split id by last '>' for nested selected packages, for example:
+  // 'foo > bar > baz' => 'foo > bar' & 'baz'
+  // 'foo'             => ''          & 'foo'
+  const lastArrowIndex = id.lastIndexOf('>')
+  const nestedRoot = id.substring(0, lastArrowIndex).trim()
+  const nestedPath = id.substring(lastArrowIndex + 1).trim()
+
+  const pkgNames = nestedRoot.split('>').map((pkg) => pkg.trim())
+  let currentBaseDir = normalizePath(path.dirname(importer))
+  for (const pkgName of pkgNames) {
+    const dirs = nodeModulesPaths(currentBaseDir)
+    for (const dir of dirs) {
+      const pkgDir = normalizePath(path.join(dir, pkgName))
+      const pkgJsonResult = await readPackageJson(pkgDir)
+      if (pkgJsonResult && !('error' in pkgJsonResult)) {
+        currentBaseDir = dir
+        break
+      }
+    }
+  }
+  return [nestedPath, currentBaseDir]
 }
