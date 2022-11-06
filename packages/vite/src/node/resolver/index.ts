@@ -10,7 +10,7 @@ import {
   shallowMergeNonUndefined
 } from './options'
 import type { ResolveResult } from './customUtils'
-import { resolveRealPath } from './customUtils'
+import { resolveRealPath, tryRealPath } from './customUtils'
 import { packageResolve, pathResolve, resolveAbsolute } from './resolvers'
 import { fsStat } from './fsUtils'
 import { tryWithAndWithoutPostfix } from './postfix'
@@ -24,12 +24,11 @@ type Resolver = (
 ) => Promise<ResolveIdResult>
 
 // TODO: TypeScript
-// TODO: browser field
 // TODO: debug
 // TODO: sideEffect field
 // TODO: optional deps
 
-// NOTE: run resolveRealPath when that function returns ResolveResult
+// NOTE: run tryRealPath/resolveRealPath each path on this file
 
 export function createResolver(options: InternalResolveOptions): Resolver {
   const resolvedOptions = shallowMergeNonUndefined(
@@ -77,20 +76,19 @@ async function innerResolve(
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
   // 2.
-  if (
-    id.startsWith('./') ||
-    id.startsWith('../') ||
-    id.startsWith('/') ||
-    (isWindows && /^\w:/.test(id))
-  ) {
-    const resolved = await pathResolve(id, importer, opts)
+  if (id.startsWith('/') || (isWindows && /^\w:/.test(id))) {
+    const resolved = await pathResolve(id, importer, opts, false)
     // ignore not found if id starts with /
     if (id.startsWith('/')) {
       if (resolved && 'error' in resolved) {
         return null
       }
     }
-    return resolved
+    return await tryRealPath(resolved, opts.preserveSymlinks)
+  }
+  if (id.startsWith('./') || id.startsWith('../')) {
+    const resolved = await pathResolve(id, importer, opts, true)
+    return await tryRealPath(resolved, opts.preserveSymlinks)
   }
 
   // 3.
@@ -102,15 +100,16 @@ async function innerResolve(
   // 4.
   if (/^\w+:/.test(id)) {
     if (id.startsWith('file:') || isDataUrl(id) || isExternalUrl(id)) {
-      return await resolveAbsolute(id, opts)
+      const resolved = await resolveAbsolute(id, opts)
+      return await tryRealPath(resolved, opts.preserveSymlinks)
     }
     return null
   }
 
   if (opts.preferRelative && /^\w/.test(id)) {
-    const result = await pathResolve(id, importer, opts)
-    if (result && !('error' in result)) {
-      return result
+    const resolved = await pathResolve(id, importer, opts, true)
+    if (resolved && !('error' in resolved)) {
+      return await tryRealPath(resolved, opts.preserveSymlinks)
     }
   }
 
@@ -140,9 +139,9 @@ async function innerResolve(
       if (resolved.id !== newId) {
         resolved.id = newId
       }
-      return resolved
+      return await tryRealPath(resolved, opts.preserveSymlinks)
     }
-    return resolved
+    return await tryRealPath(resolved, opts.preserveSymlinks)
   }
 
   return null

@@ -37,7 +37,7 @@ export async function resolvePackageExports(
     const resolved = normalizePath(path.resolve(pkgDir, relativeResolved))
     const stat = await fsStat(resolved)
     if (stat) {
-      return { id: await resolveRealPath(resolved, preserveSymlinks) }
+      return { id: resolved }
     }
     return {
       error: `exports field of ${JSON.stringify(
@@ -56,28 +56,33 @@ export async function resolvePackageExports(
 
 export async function readPackageJson(
   dir: string
-): Promise<{ result: Record<string, any> } | { error: string } | null> {
+): Promise<Record<string, any> | null> {
   const content = await fsReadFile(path.join(dir, 'package.json'))
   if (!content) return null
 
   let parsed: any
   try {
     parsed = JSON.parse(content)
-  } catch (e) {
-    return {
-      error: `failed to parse package.json of ${JSON.stringify(dir)}: ${e}`
-    }
+  } catch {
+    return null
   }
 
   if (typeof parsed !== 'object') {
-    return {
-      error: `failed to parse package.json of ${JSON.stringify(
-        dir
-      )}: was not object`
-    }
+    return null
   }
 
-  return { result: parsed }
+  return parsed
+}
+
+// TODO: mix sync/async for perf?
+export async function tryRealPath<T extends ResolveResult>(
+  resolved: T,
+  preserveSymlinks: boolean
+): Promise<T> {
+  if (!resolved || 'error' in resolved || resolved.external) return resolved
+
+  resolved.id = await resolveRealPath(resolved.id, preserveSymlinks)
+  return resolved
 }
 
 // TODO: mix sync/async for perf?

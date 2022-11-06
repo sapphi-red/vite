@@ -45,6 +45,7 @@ export type InternalResolveOptions = {
   /**
    * If this function is passed and returned a non-null value,
    * the result of this function will be used instead for bare specifiers.
+   * Make sure to return the realpath if needed.
    */
   prePackageResolve?: PrePackageResolveFunction | null
   /**

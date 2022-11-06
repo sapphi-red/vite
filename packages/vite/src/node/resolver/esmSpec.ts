@@ -12,10 +12,7 @@ export async function packageSelfResolve(
   const packagePath = await lookupPackageScope(importer)
   if (packagePath == null) return null
 
-  const pkgJsonResult = await readPackageJson(packagePath)
-  if (pkgJsonResult == null || 'error' in pkgJsonResult) return pkgJsonResult
-
-  const pkgJson = pkgJsonResult.result
+  const pkgJson = await readPackageJson(packagePath)
   if (!pkgJson || !pkgJson.exports) return null
 
   if (pkgJson.name === pkgName) {
@@ -42,10 +39,7 @@ export async function packageImportsResolve(
 
   const packagePath = await lookupPackageScope(importer)
   if (packagePath != null) {
-    const pkgJsonResult = await readPackageJson(packagePath)
-    if (pkgJsonResult == null || 'error' in pkgJsonResult) return pkgJsonResult
-
-    const pkgJson = pkgJsonResult.result
+    const pkgJson = await readPackageJson(packagePath)
     if (pkgJson?.imports) {
       // TODO
     }
@@ -54,7 +48,7 @@ export async function packageImportsResolve(
   return { error: '' } // TODO
 }
 
-async function lookupPackageScope(p: string): Promise<string | null> {
+export async function lookupPackageScope(p: string): Promise<string | null> {
   let slashIndex = p.lastIndexOf('/')
   while (slashIndex > 0) {
     const scopePath = p.slice(0, slashIndex - 1)
@@ -83,10 +77,10 @@ export async function esmFileFormat(
   const packagePath = await lookupPackageScope(p)
   if (packagePath == null) return 'commonjs'
 
-  const pkgJsonResult = await readPackageJson(packagePath)
-  if (!pkgJsonResult || 'error' in pkgJsonResult) return 'commonjs'
+  const pkgJson = await readPackageJson(packagePath)
+  if (!pkgJson) return 'commonjs'
 
-  if (pkgJsonResult.result.type === 'module') {
+  if (pkgJson.type === 'module') {
     return 'module'
   }
   return 'commonjs'

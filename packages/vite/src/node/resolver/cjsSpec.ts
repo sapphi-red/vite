@@ -6,8 +6,7 @@ import type { ResolveResult } from './customUtils'
 import {
   readPackageJson,
   resolveExternalized,
-  resolvePackageExports,
-  resolveRealPath
+  resolvePackageExports
 } from './customUtils'
 import { fsStat } from './fsUtils'
 import type { RequiredInternalResolveOptions } from './options'
@@ -40,11 +39,8 @@ export async function loadAsDirectory(
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
   // 1.
-  const pkgJsonResult = await readPackageJson(dir)
-  if (pkgJsonResult != null) {
-    if ('error' in pkgJsonResult) return pkgJsonResult
-    const pkgJson = pkgJsonResult.result
-
+  const pkgJson = await readPackageJson(dir)
+  if (pkgJson != null) {
     let entryPoint: { field: string; value: string } | undefined
 
     if (opts.mainFields.includes('browser') && pkgJson.browser) {
@@ -108,7 +104,7 @@ export async function loadAsDirectory(
   // 2.
   const resolved = await loadIndex(dir, opts.extensions)
   if (resolved) {
-    return { id: await resolveRealPath(resolved, opts.preserveSymlinks) }
+    return { id: resolved }
   }
   return null
 }
@@ -127,18 +123,18 @@ async function loadMainField(
   const joinedStat = await fsStat(joined)
   // 1.d. (no extension)
   if (joinedStat?.isFile()) {
-    return { id: await resolveRealPath(joined, opts.preserveSymlinks) }
+    return { id: joined }
   }
   // 1.d. (with extension)
   const resolvedF = await loadAsFile(dir, opts.extensions)
   if (resolvedF) {
-    return { id: await resolveRealPath(resolvedF, opts.preserveSymlinks) }
+    return { id: resolvedF }
   }
   // 1.e.
   if (joinedStat) {
     const resolvedE = await loadIndex(joined, opts.extensions)
     if (resolvedE) {
-      return { id: await resolveRealPath(resolvedE, opts.preserveSymlinks) }
+      return { id: resolvedE }
     }
   }
 
@@ -206,10 +202,7 @@ async function loadPackageExports(
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
   const pkgDir = normalizePath(path.join(dir, pkgName))
-  const pkgJsonResult = await readPackageJson(pkgDir)
-  if (pkgJsonResult == null || 'error' in pkgJsonResult) return pkgJsonResult
-
-  const pkgJson = pkgJsonResult.result
+  const pkgJson = await readPackageJson(pkgDir)
   if (!pkgJson || !pkgJson.exports) return null
 
   // 5.
@@ -234,7 +227,7 @@ export async function loadAsFileOrDirectory(
   // loadAsFile (no extension)
   if (joinedStat?.isFile()) {
     if (enableFile) {
-      return { id: await resolveRealPath(dir, opts.preserveSymlinks) }
+      return { id: dir }
     }
     return null
   }
@@ -243,7 +236,7 @@ export async function loadAsFileOrDirectory(
     // loadAsFile (with extension)
     const resolved = await loadAsFile(dir, opts.extensions)
     if (resolved) {
-      return { id: await resolveRealPath(resolved, opts.preserveSymlinks) }
+      return { id: resolved }
     }
   }
 
@@ -277,8 +270,8 @@ export async function resolveNestedSelectedPackages(
     const dirs = nodeModulesPaths(currentBaseDir)
     for (const dir of dirs) {
       const pkgDir = normalizePath(path.join(dir, pkgName))
-      const pkgJsonResult = await readPackageJson(pkgDir)
-      if (pkgJsonResult && !('error' in pkgJsonResult)) {
+      const pkgJson = await readPackageJson(pkgDir)
+      if (pkgJson) {
         currentBaseDir = dir
         break
       }

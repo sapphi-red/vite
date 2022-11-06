@@ -11,8 +11,12 @@ import { fsStat } from './fsUtils'
 import type { RequiredInternalResolveOptions } from './options'
 import { loadAsFileOrDirectory, loadNodeModules } from './cjsSpec'
 import type { ResolveResult } from './customUtils'
-import { interpretPackageName, resolveRealPath } from './customUtils'
+import { interpretPackageName } from './customUtils'
 import { packageSelfResolve } from './esmSpec'
+import {
+  resolveBareBrowserFieldMapping,
+  tryBrowserFieldMapping
+} from './browserField'
 
 export async function resolveAbsolute(
   id: string,
@@ -23,7 +27,7 @@ export async function resolveAbsolute(
     const path = url.fileURLToPath(id)
     const stat = await fsStat(path)
     if (stat) {
-      return { id: await resolveRealPath(path, opts.preserveSymlinks) }
+      return { id: path }
     }
     return { error: `File not found: ${JSON.stringify(path)}` }
   }
@@ -43,7 +47,7 @@ export async function resolveAbsolute(
   if ((!isWindows && id.startsWith('/')) || (isWindows && /^\w:/.test(id))) {
     const stat = await fsStat(id)
     if (stat) {
-      return { id: await resolveRealPath(id, opts.preserveSymlinks) }
+      return { id }
     }
   }
   return { error: `File not found: ${JSON.stringify(id)}` }
@@ -52,12 +56,16 @@ export async function resolveAbsolute(
 export async function pathResolve(
   id: string,
   importer: string,
-  opts: RequiredInternalResolveOptions
+  opts: RequiredInternalResolveOptions,
+  enableBrowserFieldMapping: boolean
 ): Promise<ResolveResult> {
   const absolute = normalizePath(path.resolve(path.dirname(importer), id))
   // 3.a. and 3.b.
   const resolved = await loadAsFileOrDirectory(absolute, true, opts)
   if (resolved) {
+    if (enableBrowserFieldMapping) {
+      return await tryBrowserFieldMapping(resolved, importer, opts)
+    }
     return resolved
   }
   return {
@@ -87,7 +95,16 @@ export async function packageResolve(
   // 7. - 8.
   const selfPath = await packageSelfResolve(pkgName, subpath, importer, opts)
   if (selfPath) {
-    return selfPath
+    return await tryBrowserFieldMapping(selfPath, importer, opts)
+  }
+
+  const bareBrowserFieldMapped = await resolveBareBrowserFieldMapping(
+    id,
+    importer,
+    opts
+  )
+  if (bareBrowserFieldMapped) {
+    return bareBrowserFieldMapped
   }
 
   // 9. - 10.
@@ -99,7 +116,7 @@ export async function packageResolve(
     external
   )
   if (resolved) {
-    return resolved
+    return await tryBrowserFieldMapping(resolved, importer, opts)
   }
 
   if (opts.nodeBuiltin !== 'only-builtin' && isBuiltinModule(id)) {
