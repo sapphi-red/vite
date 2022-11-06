@@ -71,7 +71,7 @@ export async function pathResolve(
   return {
     error: `Failed to resolve: ${JSON.stringify(id)} at ${JSON.stringify(
       importer
-    )} ${absolute}`
+    )}`
   }
 }
 

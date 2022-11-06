@@ -201,9 +201,14 @@ export function overhauledResolvePlugin(
       }
 
       let postPackageResolve: PostPackageResolveFunction | null = null
-      if (depsOptimizer) {
+      if (
+        depsOptimizer && // skip when resolving before listening to the server
+        !scan // skip when initial esbuild scan phase
+      ) {
         postPackageResolve = (id, resolved, isCJS) => {
-          if (resolved.external) return resolved.id
+          if (resolveOptions.isBuild || resolved.external) {
+            return resolved.id
+          }
           // linked
           if (!resolved.id.includes('node_modules')) {
             return resolved.id
