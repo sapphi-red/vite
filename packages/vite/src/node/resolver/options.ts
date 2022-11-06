@@ -51,6 +51,7 @@ export type InternalResolveOptions = {
   /**
    * If this function is passed and returned a non-null value,
    * the result of this function will be used instead of the resolved value.
+   * Make sure to return the realpath if needed.
    */
   postPackageResolve?: PostPackageResolveFunction | null
   shouldExternalize?: ((id: string) => boolean | undefined) | null

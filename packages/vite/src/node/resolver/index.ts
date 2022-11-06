@@ -9,13 +9,14 @@ import {
   internalResolveOptionsDefault,
   shallowMergeNonUndefined
 } from './options'
-import type { ResolveResult } from './customUtils'
+import type { NonErrorResolveResult, ResolveResult } from './customUtils'
 import { resolveRealPath, tryRealPath } from './customUtils'
 import { packageResolve, pathResolve, resolveAbsolute } from './resolvers'
 import { fsStat } from './fsUtils'
 import { tryWithAndWithoutPostfix } from './postfix'
 import { resolveNestedSelectedPackages } from './cjsSpec'
 import { esmFileFormat } from './esmSpec'
+import { tryAppendSideEffects } from './sideEffectsField'
 
 type Resolver = (
   id: string,
@@ -25,10 +26,9 @@ type Resolver = (
 
 // TODO: TypeScript
 // TODO: debug
-// TODO: sideEffect field
 // TODO: optional deps
 
-// NOTE: run tryRealPath/resolveRealPath each path on this file
+// NOTE: run tryAppendSideEffects and tryRealPath/resolveRealPath each path on this file
 
 export function createResolver(options: InternalResolveOptions): Resolver {
   const resolvedOptions = shallowMergeNonUndefined(
@@ -84,11 +84,13 @@ async function innerResolve(
         return null
       }
     }
-    return await tryRealPath(resolved, opts.preserveSymlinks)
+    const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
+    return await tryRealPath(resolvedWithSideEffects, opts.preserveSymlinks)
   }
   if (id.startsWith('./') || id.startsWith('../')) {
     const resolved = await pathResolve(id, importer, opts, true)
-    return await tryRealPath(resolved, opts.preserveSymlinks)
+    const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
+    return await tryRealPath(resolvedWithSideEffects, opts.preserveSymlinks)
   }
 
   // 3.
@@ -101,7 +103,8 @@ async function innerResolve(
   if (/^\w+:/.test(id)) {
     if (id.startsWith('file:') || isDataUrl(id) || isExternalUrl(id)) {
       const resolved = await resolveAbsolute(id, opts)
-      return await tryRealPath(resolved, opts.preserveSymlinks)
+      const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
+      return await tryRealPath(resolvedWithSideEffects, opts.preserveSymlinks)
     }
     return null
   }
@@ -109,7 +112,8 @@ async function innerResolve(
   if (opts.preferRelative && /^\w/.test(id)) {
     const resolved = await pathResolve(id, importer, opts, true)
     if (resolved && !('error' in resolved)) {
-      return await tryRealPath(resolved, opts.preserveSymlinks)
+      const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
+      return await tryRealPath(resolvedWithSideEffects, opts.preserveSymlinks)
     }
   }
 
@@ -129,19 +133,29 @@ async function innerResolve(
   // 5.
   const resolved = await packageResolve(id, importer, opts, external)
   if (resolved) {
-    if (opts.postPackageResolve && !('error' in resolved)) {
-      const isResolvedFileFormat = await esmFileFormat(resolved.id)
+    const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
+    const resolvedRealPath = await tryRealPath(
+      resolvedWithSideEffects,
+      opts.preserveSymlinks
+    )
+
+    if (opts.postPackageResolve && !('error' in resolvedRealPath)) {
+      // should be ok since resolvedRealPath.error doesn't exist
+      const originalResolvedId = (resolved as NonErrorResolveResult).id
+
+      const isResolvedFileFormat = await esmFileFormat(
+        originalResolvedId /* use non-realpath for cache hit */
+      )
       const newId = await opts.postPackageResolve(
         id,
-        resolved,
+        resolvedRealPath,
         isResolvedFileFormat === 'commonjs'
       )
-      if (resolved.id !== newId) {
-        resolved.id = newId
+      if (resolvedRealPath.id !== newId) {
+        resolvedRealPath.id = newId
       }
-      return await tryRealPath(resolved, opts.preserveSymlinks)
     }
-    return await tryRealPath(resolved, opts.preserveSymlinks)
+    return resolvedRealPath
   }
 
   return null

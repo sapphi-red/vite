@@ -203,10 +203,10 @@ export function overhauledResolvePlugin(
       let postPackageResolve: PostPackageResolveFunction | null = null
       if (depsOptimizer) {
         postPackageResolve = (id, resolved, isCJS) => {
-          if (resolved.external) return id
+          if (resolved.external) return resolved.id
           // linked
           if (!resolved.id.includes('node_modules')) {
-            return id
+            return resolved.id
           }
 
           const isJsType = depsOptimizer
