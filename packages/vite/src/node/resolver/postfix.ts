@@ -10,31 +10,29 @@ export function tryWithAndWithoutPostfix<
   opts: Opts
 ) => Promise<Result | { error: string } | null> {
   return async (id, importer, opts) => {
-    const { file, postfix } = splitFileAndPostfix(id)
     const errors: string[] = []
 
-    // first resolve with postfix if postfix exists
-    if (postfix !== '') {
-      const resolved = await func(id, importer, opts)
-      if (resolved) {
-        if ('error' in resolved) {
-          errors.push(resolved.error)
-        } else {
-          return resolved
-        }
-      }
-    }
-
-    // then resolve without postfix (or resolve as-is if postfix doesn't exist)
-    const resolved = await func(file, importer, opts)
+    // first resolve normally
+    const resolved = await func(id, importer, opts)
     if (resolved) {
       if ('error' in resolved) {
         errors.push(resolved.error)
       } else {
-        if (postfix !== '') {
-          resolved.id += postfix
-        }
         return resolved
+      }
+    }
+
+    const { file, postfix } = splitFileAndPostfix(id)
+    // if it failed, resolve without postfix
+    if (postfix !== '') {
+      const resolved = await func(file, importer, opts)
+      if (resolved) {
+        if ('error' in resolved) {
+          errors.push(resolved.error)
+        } else {
+          resolved.id += postfix
+          return resolved
+        }
       }
     }
 
