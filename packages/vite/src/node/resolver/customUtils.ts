@@ -2,6 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { resolve as resolveExports } from 'resolve.exports'
 import { normalizePath } from '../utils'
+import { browserExternalId } from '../plugins/resolve'
 import { fsReadFile, fsStat } from './fsUtils'
 
 export type NonErrorResolveResult = {
@@ -29,28 +30,36 @@ export async function resolvePackageExports(
   conditions: string[],
   preserveSymlinks: boolean
 ): Promise<ResolveResult> {
-  const relativeResolved = resolveExports(pkgJson, `.${subpath}`, {
-    unsafe: true,
-    conditions
-  })
-  if (relativeResolved) {
-    const resolved = normalizePath(path.resolve(pkgDir, relativeResolved))
-    const stat = await fsStat(resolved)
-    if (stat) {
-      return { id: resolved }
+  try {
+    const relativeResolved = resolveExports(pkgJson, `.${subpath}`, {
+      unsafe: true,
+      conditions
+    })
+    if (relativeResolved) {
+      const resolved = normalizePath(path.resolve(pkgDir, relativeResolved))
+      const stat = await fsStat(resolved)
+      if (stat) {
+        return { id: resolved }
+      }
+      return {
+        error: `exports field of ${JSON.stringify(
+          pkgDir
+        )} resolves ${JSON.stringify(`.${subpath}`)} to ${JSON.stringify(
+          resolved
+        )} but that file doesn't exist.`
+      }
     }
+  } catch (e) {
     return {
-      error: `exports field of ${JSON.stringify(
-        pkgDir
-      )} resolves ${JSON.stringify(`.${subpath}`)} to ${JSON.stringify(
-        resolved
-      )} but that file doesn't exist.`
+      error: `${JSON.stringify(
+        `.${subpath}`
+      )} is not exported from ${JSON.stringify(pkgDir)}. (${e})`
     }
   }
   return {
-    error: `${JSON.stringify(subpath)} is not exported from ${JSON.stringify(
-      pkgDir
-    )}.`
+    error: `${JSON.stringify(
+      `.${subpath}`
+    )} is not exported from ${JSON.stringify(pkgDir)}.`
   }
 }
 
@@ -80,6 +89,7 @@ export async function tryRealPath<T extends ResolveResult>(
   preserveSymlinks: boolean
 ): Promise<T> {
   if (!resolved || 'error' in resolved || resolved.external) return resolved
+  if (resolved.id.startsWith(browserExternalId)) return resolved
 
   resolved.id = await resolveRealPath(resolved.id, preserveSymlinks)
   return resolved

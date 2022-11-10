@@ -67,7 +67,6 @@ export function overhauledResolvePlugin(
     extensions: resolveOptions.extensions,
     conditions: resolveOptions.conditions,
     preserveSymlinks,
-    preferRelative: resolveOptions.preferRelative,
     supportNestedSelectedPackages: true,
     shouldExternalize: resolveOptions.shouldExternalize,
 
@@ -260,6 +259,8 @@ export function overhauledResolvePlugin(
         resolveOpts?.custom?.['node-resolve']?.isRequire ?? false
 
       const res = await resolve(id, importer, {
+        preferRelative:
+          resolveOptions.preferRelative || importer?.endsWith('.html'),
         nodeBuiltin,
         prePackageResolve,
         postPackageResolve,

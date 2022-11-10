@@ -156,11 +156,11 @@
   text('.exports-deep-query', deepPath)
 
   // deep import w/ exposed dir
-  import { msg as exposedDirMsg } from 'resolve-exports-path/dir/dir'
+  import { msg as exposedDirMsg } from 'resolve-exports-path/dir/dir.js'
   text('.exports-deep-exposed-dir', exposedDirMsg)
 
   // deep import w/ mapped dir
-  import { msg as mappedDirMsg } from 'resolve-exports-path/dir-mapped/dir'
+  import { msg as mappedDirMsg } from 'resolve-exports-path/dir-mapped/dir.js'
   text('.exports-deep-mapped-dir', mappedDirMsg)
 
   import { msg as exportsEnvMsg } from 'resolve-exports-env'

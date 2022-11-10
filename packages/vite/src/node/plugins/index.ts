@@ -75,8 +75,15 @@ export async function resolvePlugins(
     overhauledResolvePlugin({
       root: config.root,
       mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main'], // config.resolve.mainFields,
-      extensions: ['mts', 'ts', 'tsx', 'mjs', 'js', 'cjs', 'jsx'], // TODO config.resolve.extensions,
-      conditions: ['browser', 'import', 'module', ...config.resolve.conditions],
+      extensions: ['mts', 'ts', 'tsx', 'mjs', 'js', 'cjs', 'jsx', 'json'], // TODO config.resolve.extensions,
+      conditions: [
+        'browser',
+        'import',
+        'module',
+        'development',
+        'production',
+        ...config.resolve.conditions
+      ],
       preserveSymlinks: config.resolve.preserveSymlinks,
       preferRelative: false,
 

@@ -78,12 +78,6 @@ async function innerResolve(
   // 2.
   if (id.startsWith('/') || (isWindows && /^\w:/.test(id))) {
     const resolved = await pathResolve(id, importer, opts, false)
-    // ignore not found if id starts with /
-    if (id.startsWith('/')) {
-      if (resolved && 'error' in resolved) {
-        return null
-      }
-    }
     const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
     return await tryRealPath(resolvedWithSideEffects, opts.preserveSymlinks)
   }
@@ -96,13 +90,18 @@ async function innerResolve(
   // 3.
   // if (id.startsWith('#')) {
   //   const resolved = await packageImportsResolve(id, importer, opts)
-  //   return await resolveAbsolute(resolved, opts)
+  //   return await resolveAbsolute(resolved, importer, opts)
   // }
 
   // 4.
   if (/^\w+:/.test(id)) {
-    if (id.startsWith('file:') || isDataUrl(id) || isExternalUrl(id)) {
-      const resolved = await resolveAbsolute(id, opts)
+    if (
+      id.startsWith('file:') ||
+      isDataUrl(id) ||
+      isExternalUrl(id) ||
+      id.startsWith('node:')
+    ) {
+      const resolved = await resolveAbsolute(id, importer, opts)
       const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
       return await tryRealPath(resolvedWithSideEffects, opts.preserveSymlinks)
     }

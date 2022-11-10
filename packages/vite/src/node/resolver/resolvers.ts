@@ -7,7 +7,6 @@ import {
   isWindows,
   normalizePath
 } from '../utils'
-import { fsStat } from './fsUtils'
 import type { RequiredInternalResolveOptions } from './options'
 import { loadAsFileOrDirectory, loadNodeModules } from './cjsSpec'
 import type { ResolveResult } from './customUtils'
@@ -20,19 +19,20 @@ import {
 
 export async function resolveAbsolute(
   id: string,
+  importer: string,
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
   // 1.
-  if (id.startsWith('file:')) {
-    const path = url.fileURLToPath(id)
-    const stat = await fsStat(path)
-    if (stat) {
-      return { id: path }
-    }
-    return { error: `File not found: ${JSON.stringify(path)}` }
+  if (id.startsWith('node:')) {
+    return await resolveNodeBuiltin(id, importer, opts)
   }
 
   // 2.
+  if (id.startsWith('file:')) {
+    return { id: url.fileURLToPath(id) }
+  }
+
+  // 3.
   // data uri: pass through (this only happens during build and will be
   // handled by dedicated plugin)
   if (isDataUrl(id)) {
@@ -43,12 +43,9 @@ export async function resolveAbsolute(
     return { id, external: true }
   }
 
-  // 3.
+  // 4.
   if ((!isWindows && id.startsWith('/')) || (isWindows && /^\w:/.test(id))) {
-    const stat = await fsStat(id)
-    if (stat) {
-      return { id }
-    }
+    return { id }
   }
   return { error: `File not found: ${JSON.stringify(id)}` }
 }
@@ -68,11 +65,7 @@ export async function pathResolve(
     }
     return resolved
   }
-  return {
-    error: `Failed to resolve: ${JSON.stringify(id)} at ${JSON.stringify(
-      importer
-    )}`
-  }
+  return null
 }
 
 export async function packageResolve(
@@ -120,13 +113,21 @@ export async function packageResolve(
   }
 
   if (opts.nodeBuiltin !== 'only-builtin' && isBuiltinModule(id)) {
-    if (typeof opts.nodeBuiltin === 'function') {
-      return await opts.nodeBuiltin(id, importer)
-    }
-    return { id, external: true }
+    return await resolveNodeBuiltin(id, importer, opts)
   }
 
   return null
+}
+
+async function resolveNodeBuiltin(
+  id: string,
+  importer: string,
+  opts: RequiredInternalResolveOptions
+): Promise<ResolveResult> {
+  if (typeof opts.nodeBuiltin === 'function') {
+    return await opts.nodeBuiltin(id, importer)
+  }
+  return { id, external: true }
 }
 
 function isBuiltinModule(id: string): boolean {

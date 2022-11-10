@@ -56,7 +56,7 @@ _is_windows_: whether it is running on Windows
    2. **RESOLVE_ABSOLUTE**(_resolved_)
 4. [ESM/CJS] Otherwise, if _id_ matches /^\w+:/, then
    1. Note: CJS doesn't support URL protocols.
-   2. [ESM] If _id_ begins with "file:" or "data:" or "http:" or "https:", then
+   2. [ESM] If _id_ begins with "file:" or "data:" or "http:" or "https:" or "node:", then
       1. [ESM] **RESOLVE_ABSOLUTE**(_id_)
    3. [ESM/CJS] Fallback to other rollup/vite plugins. STOP
 5. [ESM/CJS] Otherwise,
@@ -67,13 +67,15 @@ _is_windows_: whether it is running on Windows
 
 **RESOLVE_ABSOLUTE**(_id_):
 
-1. [ESM] If _id_ begins with "file:", then
+1. [ESM] If _id_ begins with "node:", then
+   1. resolve that. STOP
+2. [ESM] If _id_ begins with "file:", then
    1. If **fileURLToPath**(_id_) exists, resolve that. STOP
    2. Throw "not found"
-2. [ESM] If _id_ begins with "data:" or "http:" or "https:", then
+3. [ESM] If _id_ begins with "data:" or "http:" or "https:", then
    1. resolve that. STOP
-3. [ESM/CJS] If _id_ exists, resolve that. STOP
-4. [ESM/CJS] Throw "not found"
+4. [ESM/CJS] If _id_ exists, resolve that. STOP
+5. [ESM/CJS] Throw "not found"
 
 **PATH_RESOLVE**(_id_, _importer_)
 
