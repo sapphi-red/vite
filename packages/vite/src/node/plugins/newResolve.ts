@@ -75,7 +75,7 @@ export function overhauledResolvePlugin(
 
   const nodeBuiltinSSRExternal: NodeBuiltinType = (id, importer) => {
     let message = `Cannot bundle Node.js built-in "${id}"`
-    message += ` imported from "${JSON.stringify(importer)}"`
+    message += ` imported from ${JSON.stringify(importer)}`
     message += `. Consider disabling ssr.noExternal or remove the built-in dependency.`
     return { error: message }
   }
@@ -181,7 +181,8 @@ export function overhauledResolvePlugin(
 
       let nodeBuiltin: NodeBuiltinType
       if (ssr) {
-        nodeBuiltin = ssrNoExternal ? nodeBuiltinSSRExternal : 'allow-polyfill'
+        nodeBuiltin =
+          ssrNoExternal === true ? nodeBuiltinSSRExternal : 'allow-polyfill'
       } else {
         nodeBuiltin = nodeBuiltinNonSSR
       }

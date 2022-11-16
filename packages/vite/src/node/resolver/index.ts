@@ -13,7 +13,7 @@ import type { NonErrorResolveResult, ResolveResult } from './customUtils'
 import { resolveRealPath, tryRealPath } from './customUtils'
 import { packageResolve, pathResolve, resolveAbsolute } from './resolvers'
 import { fsStat } from './fsUtils'
-import { tryWithAndWithoutPostfix } from './postfix'
+import { splitFileAndPostfix, tryWithAndWithoutPostfix } from './postfix'
 import { resolveNestedSelectedPackages } from './cjsSpec'
 import { esmFileFormat } from './esmSpec'
 import { tryAppendSideEffects } from './sideEffectsField'
@@ -42,9 +42,7 @@ export function createResolver(options: InternalResolveOptions): Resolver {
     const opts = overrideOptions
       ? shallowMergeNonUndefined(resolvedOptions, overrideOptions)
       : resolvedOptions
-    const resolvedImporter = importer
-      ? normalizePath(path.resolve(opts.root, importer))
-      : opts.root
+    const resolvedImporter = await resolveImporter(importer, opts.root)
 
     opts.conditions = opts.conditions.filter((condition) => {
       switch (condition) {
@@ -68,6 +66,31 @@ export function createResolver(options: InternalResolveOptions): Resolver {
       return resolved
     }
   }
+}
+
+async function resolveImporter(
+  importer: string | undefined,
+  root: string
+): Promise<string> {
+  if (!importer) return root
+
+  const absoluteImporter = normalizePath(path.resolve(root, importer))
+
+  const stat = await fsStat(absoluteImporter)
+  if (stat) {
+    return absoluteImporter
+  }
+
+  const { file, postfix } = splitFileAndPostfix(absoluteImporter)
+  if (postfix !== '') {
+    const stat = await fsStat(file)
+    if (stat) {
+      return file
+    }
+  }
+
+  // resolve from root when importer was a virtual file
+  return root
 }
 
 async function innerResolve(

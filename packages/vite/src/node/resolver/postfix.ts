@@ -44,7 +44,10 @@ export function tryWithAndWithoutPostfix<
   }
 }
 
-function splitFileAndPostfix(path: string) {
+export function splitFileAndPostfix(path: string): {
+  file: string
+  postfix: string
+} {
   let file = path
   let postfix = ''
 

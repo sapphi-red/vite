@@ -49,9 +49,9 @@ export async function packageImportsResolve(
 }
 
 export async function lookupPackageScope(p: string): Promise<string | null> {
-  let slashIndex = p.lastIndexOf('/')
+  let slashIndex = p.length
   while (slashIndex > 0) {
-    const scopePath = p.slice(0, slashIndex - 1)
+    const scopePath = p.slice(0, slashIndex)
     if (scopePath.endsWith('/node_modules')) {
       return null
     }

@@ -161,7 +161,7 @@ export async function loadNodeModules(
     const resolvedE = await loadPackageExports(pkgName, subpath, dir, opts)
     if (resolvedE) {
       if (external) {
-        return resolveExternalized(resolvedE, `${pkgName}/${subpath}`)
+        return resolveExternalized(resolvedE, `${pkgName}${subpath}`)
       }
       return resolvedE
     }
@@ -179,20 +179,17 @@ export async function loadNodeModules(
   return null
 }
 
-function nodeModulesPaths(dir: string): string[] {
+function* nodeModulesPaths(inputDir: string): Generator<string, void> {
+  const dir = inputDir.endsWith('/') ? inputDir.slice(0, -1) : inputDir
   let slashIndex = dir.length
-  const dirs: string[] = []
   while (slashIndex > 0) {
-    const former = dir.slice(0, slashIndex + 1)
-    const latter = dir.slice(slashIndex + 1)
-    if (latter === 'node_modules' || latter.startsWith('node_modules/')) {
-      continue
+    const former = dir.slice(0, slashIndex)
+    if (!former.endsWith('/node_modules')) {
+      yield former + '/node_modules'
     }
-    dirs.push(normalizePath(path.resolve(former, 'node_modules')))
 
     slashIndex = dir.lastIndexOf('/', slashIndex - 1)
   }
-  return dirs
 }
 
 async function loadPackageExports(
