@@ -1,7 +1,6 @@
 lockfileVersion: 5.4
 
 overrides:
-  vite: workspace:*
   '@vitejs/plugin-vue': workspace:*
 
 packageExtensionsChecksum: 696422bac84dd936748019990f84746e
@@ -120,7 +119,7 @@ importers:
       typescript: 4.6.4
       unbuild: 0.9.4
       vite: link:packages/vite
-      vitepress: 1.0.0-alpha.28
+      vitepress: 1.0.0-alpha.28_@types+node@17.0.42
       vitest: 0.25.1
       vue: 3.2.45
 
@@ -7863,6 +7862,14 @@ packages:
       spdx-satisfies: 5.0.1
     dev: true
 
+  /rollup/2.79.1:
+    resolution: {integrity: sha512-uKxbd0IhMZOhjAiD5oAFp7BqvkA4Dv47qpOCtaNvng4HBwdbWtdOh8f5nZNuk2rp51PMGk3bzfWu5oayNEuYnw==}
+    engines: {node: '>=10.0.0'}
+    hasBin: true
+    optionalDependencies:
+      fsevents: 2.3.2
+    dev: true
+
   /rollup/3.3.0:
     resolution: {integrity: sha512-wqOV/vUJCYEbWsXvwCkgGWvgaEnsbn4jxBQWKpN816CqsmCimDmCNJI83c6if7QVD4v/zlyRzxN7U2yDT5rfoA==}
     engines: {node: '>=14.18.0', npm: '>=8.0.0'}
@@ -8869,7 +8876,41 @@ packages:
     engines: {node: '>= 0.8'}
     dev: true
 
-  /vitepress/1.0.0-alpha.28:
+  /vite/3.2.3_@types+node@17.0.42:
+    resolution: {integrity: sha512-h8jl1TZ76eGs3o2dIBSsvXDLb1m/Ec1iej8ZMdz+PsaFUsftZeWe2CZOI3qogEsMNaywc17gu0q6cQDzh/weCQ==}
+    engines: {node: ^14.18.0 || >=16.0.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': '>= 14'
+      less: '*'
+      sass: '*'
+      stylus: '*'
+      sugarss: '*'
+      terser: ^5.4.0
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      less:
+        optional: true
+      sass:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+    dependencies:
+      '@types/node': 17.0.42
+      esbuild: 0.15.11
+      postcss: 8.4.19
+      resolve: 1.22.1
+      rollup: 2.79.1
+    optionalDependencies:
+      fsevents: 2.3.2
+    dev: true
+
+  /vitepress/1.0.0-alpha.28_@types+node@17.0.42:
     resolution: {integrity: sha512-pvbLssDMgLUN1terajmPlFBxHSDGO4DqwexKbjFyr7LeELerVuwGrG6F2J1hxmwOlbpLd1kHXEDqGm9JX/kTDQ==}
     hasBin: true
     dependencies:
@@ -8880,14 +8921,20 @@ packages:
       '@vueuse/core': 9.4.0_vue@3.2.45
       body-scroll-lock: 4.0.0-beta.0
       shiki: 0.11.1
-      vite: link:packages/vite
+      vite: 3.2.3_@types+node@17.0.42
       vue: 3.2.45
     transitivePeerDependencies:
       - '@algolia/client-search'
+      - '@types/node'
       - '@types/react'
       - '@vue/composition-api'
+      - less
       - react
       - react-dom
+      - sass
+      - stylus
+      - sugarss
+      - terser
     dev: true
 
   /vitest/0.25.1:
@@ -8925,9 +8972,14 @@ packages:
       tinybench: 2.3.1
       tinypool: 0.3.0
       tinyspy: 1.0.2
-      vite: link:packages/vite
+      vite: 3.2.3_@types+node@17.0.42
     transitivePeerDependencies:
+      - less
+      - sass
+      - stylus
+      - sugarss
       - supports-color
+      - terser
     dev: true
 
   /void-elements/3.1.0:

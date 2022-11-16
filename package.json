@@ -114,7 +114,6 @@
   "packageManager": "pnpm@7.15.0",
   "pnpm": {
     "overrides": {
-      "vite": "workspace:*",
       "@vitejs/plugin-vue": "workspace:*"
     },
     "packageExtensions": {

@@ -29,6 +29,7 @@ type Resolver = (
 // TODO: TypeScript
 // TODO: debug
 // TODO: optional deps
+// TODO: fs.access
 
 // NOTE: run tryAppendSideEffects and tryRealPath/resolveRealPath each path on this file
 
