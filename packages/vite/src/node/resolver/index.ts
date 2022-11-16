@@ -9,13 +9,15 @@ import {
   internalResolveOptionsDefault,
   shallowMergeNonUndefined
 } from './options'
-import type { NonErrorResolveResult, ResolveResult } from './customUtils'
+import type { ResolveResult } from './customUtils'
 import { resolveRealPath, tryRealPath } from './customUtils'
-import { packageResolve, pathResolve, resolveAbsolute } from './resolvers'
+import {
+  packageResolveExtended,
+  pathResolve,
+  resolveAbsolute
+} from './resolvers'
 import { fsStat } from './fsUtils'
 import { splitFileAndPostfix, tryWithAndWithoutPostfix } from './postfix'
-import { resolveNestedSelectedPackages } from './cjsSpec'
-import { esmFileFormat } from './esmSpec'
 import { tryAppendSideEffects } from './sideEffectsField'
 
 type Resolver = (
@@ -98,7 +100,7 @@ async function innerResolve(
   importer: string,
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
-  // 2.
+  // RESOLVE 2.
   if (id.startsWith('/') || (isWindows && /^\w:/.test(id))) {
     const resolved = await pathResolve(id, importer, opts, false)
     const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
@@ -110,13 +112,13 @@ async function innerResolve(
     return await tryRealPath(resolvedWithSideEffects, opts.preserveSymlinks)
   }
 
-  // 3.
+  // RESOLVE 3.
   // if (id.startsWith('#')) {
   //   const resolved = await packageImportsResolve(id, importer, opts)
   //   return await resolveAbsolute(resolved, importer, opts)
   // }
 
-  // 4.
+  // RESOLVE 4.
   if (/^\w+:/.test(id)) {
     if (
       id.startsWith('file:') ||
@@ -139,48 +141,7 @@ async function innerResolve(
     }
   }
 
-  const external = opts.shouldExternalize?.(id) ?? false
-
-  if (opts.prePackageResolve) {
-    const resolved = await opts.prePackageResolve(id, importer, external)
-    if (resolved) {
-      return resolved
-    }
-  }
-
-  if (opts.supportNestedSelectedPackages && id.includes('>')) {
-    ;[id, importer] = await resolveNestedSelectedPackages(id, importer)
-  }
-
-  // 5.
-  const resolved = await packageResolve(id, importer, opts, external)
-  if (resolved) {
-    const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
-    const resolvedRealPath = await tryRealPath(
-      resolvedWithSideEffects,
-      opts.preserveSymlinks
-    )
-
-    if (opts.postPackageResolve && !('error' in resolvedRealPath)) {
-      // should be ok since resolvedRealPath.error doesn't exist
-      const originalResolvedId = (resolved as NonErrorResolveResult).id
-
-      const isResolvedFileFormat = await esmFileFormat(
-        originalResolvedId /* use non-realpath for cache hit */
-      )
-      const newId = await opts.postPackageResolve(
-        id,
-        resolvedRealPath,
-        isResolvedFileFormat === 'commonjs'
-      )
-      if (resolvedRealPath.id !== newId) {
-        resolvedRealPath.id = newId
-      }
-    }
-    return resolvedRealPath
-  }
-
-  return null
+  return await packageResolveExtended(id, importer, opts)
 }
 
 export const resolveFile = tryWithAndWithoutPostfix(

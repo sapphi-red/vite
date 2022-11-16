@@ -2,6 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs/promises'
 import { hasESMSyntax } from 'mlly'
 import { normalizePath } from '../utils'
+import { browserExternalId } from '../plugins/resolve'
 import type { ResolveResult } from './customUtils'
 import {
   readPackageJson,
@@ -10,7 +11,11 @@ import {
 } from './customUtils'
 import { fsStat } from './fsUtils'
 import type { RequiredInternalResolveOptions } from './options'
-import { resolveBrowserField } from './browserField'
+import {
+  resolveSimpleBrowserField,
+  tryMainFieldBrowserFieldMapping,
+  tryRelativeBrowserFieldMapping
+} from './browserField'
 
 /**
  * NOTE: this function doesn't resolve without extension
@@ -44,12 +49,13 @@ export async function loadAsDirectory(
     let entryPoint: { field: string; value: string } | undefined
 
     if (opts.mainFields.includes('browser') && pkgJson.browser) {
-      const browserEntry = resolveBrowserField(pkgJson.browser, '.')
+      const browserEntry = resolveSimpleBrowserField(pkgJson.browser)
       if (browserEntry) {
         const resolvedBrowserEntry = await loadMainField(
           dir,
           'browser',
           browserEntry,
+          pkgJson.browser,
           opts
         )
         if ('error' in resolvedBrowserEntry) {
@@ -96,7 +102,13 @@ export async function loadAsDirectory(
     }
     if (entryPoint) {
       // 1.c. - 1.e.
-      return await loadMainField(dir, entryPoint.field, entryPoint.value, opts)
+      return await loadMainField(
+        dir,
+        entryPoint.field,
+        entryPoint.value,
+        pkgJson.browser,
+        opts
+      )
       // NOTE: doesn't support 1.f.
     }
   }
@@ -116,8 +128,21 @@ async function loadMainField(
   dir: string,
   fieldName: string,
   fieldValue: string,
+  browserField: string | Record<string, string | false> | undefined,
   opts: RequiredInternalResolveOptions
 ): Promise<{ id: string } | { error: string }> {
+  const mapped = await tryMainFieldBrowserFieldMapping(
+    fieldValue,
+    browserField,
+    opts
+  )
+  if (mapped === false) {
+    return { id: browserExternalId }
+  }
+  if (mapped) {
+    fieldValue = mapped
+  }
+
   // 1.c.
   const joined = normalizePath(path.resolve(dir, fieldValue))
   const joinedStat = await fsStat(joined)
@@ -126,7 +151,7 @@ async function loadMainField(
     return { id: joined }
   }
   // 1.d. (with extension)
-  const resolvedF = await loadAsFile(dir, opts.extensions)
+  const resolvedF = await loadAsFile(joined, opts.extensions)
   if (resolvedF) {
     return { id: resolvedF }
   }
@@ -168,7 +193,12 @@ export async function loadNodeModules(
 
     const joined = normalizePath(path.join(dir, pkgName, subpath))
     // 2.2. and 2.3.
-    const resolvedF = await loadAsFileOrDirectory(joined, subpath !== '.', opts)
+    const resolvedF = await loadAsFileOrDirectory(
+      joined,
+      opts,
+      subpath !== '.',
+      true
+    )
     if (resolvedF) {
       if (external) {
         return resolveExternalized(resolvedF)
@@ -217,9 +247,17 @@ async function loadPackageExports(
  */
 export async function loadAsFileOrDirectory(
   dir: string,
+  opts: RequiredInternalResolveOptions,
   enableFile: boolean,
-  opts: RequiredInternalResolveOptions
+  enableBrowserFieldMapping: boolean
 ): Promise<ResolveResult> {
+  if (enableBrowserFieldMapping) {
+    const mapped = await tryRelativeBrowserFieldMapping(dir, opts)
+    if (mapped) {
+      return mapped
+    }
+  }
+
   const joinedStat = await fsStat(dir)
   // loadAsFile (no extension)
   if (joinedStat?.isFile()) {

@@ -8,14 +8,16 @@ import {
   normalizePath
 } from '../utils'
 import type { RequiredInternalResolveOptions } from './options'
-import { loadAsFileOrDirectory, loadNodeModules } from './cjsSpec'
-import type { ResolveResult } from './customUtils'
-import { interpretPackageName } from './customUtils'
-import { packageSelfResolve } from './esmSpec'
 import {
-  resolveBareBrowserFieldMapping,
-  tryBrowserFieldMapping
-} from './browserField'
+  loadAsFileOrDirectory,
+  loadNodeModules,
+  resolveNestedSelectedPackages
+} from './cjsSpec'
+import type { NonErrorResolveResult, ResolveResult } from './customUtils'
+import { interpretPackageName, tryRealPath } from './customUtils'
+import { esmFileFormat, packageSelfResolve } from './esmSpec'
+import { tryBareBrowserFieldMapping } from './browserField'
+import { tryAppendSideEffects } from './sideEffectsField'
 
 export async function resolveAbsolute(
   id: string,
@@ -58,13 +60,60 @@ export async function pathResolve(
 ): Promise<ResolveResult> {
   const absolute = normalizePath(path.resolve(path.dirname(importer), id))
   // 3.a. and 3.b.
-  const resolved = await loadAsFileOrDirectory(absolute, true, opts)
-  if (resolved) {
-    if (enableBrowserFieldMapping) {
-      return await tryBrowserFieldMapping(resolved, importer, opts)
+  return await loadAsFileOrDirectory(
+    absolute,
+    opts,
+    true,
+    enableBrowserFieldMapping
+  )
+}
+
+export async function packageResolveExtended(
+  id: string,
+  importer: string,
+  opts: RequiredInternalResolveOptions
+): Promise<ResolveResult> {
+  const external = opts.shouldExternalize?.(id) ?? false
+
+  if (opts.prePackageResolve) {
+    const resolved = await opts.prePackageResolve(id, importer, external)
+    if (resolved) {
+      return resolved
     }
-    return resolved
   }
+
+  if (opts.supportNestedSelectedPackages && id.includes('>')) {
+    ;[id, importer] = await resolveNestedSelectedPackages(id, importer)
+  }
+
+  // RESOLVE 5.
+  const resolved = await packageResolve(id, importer, opts, external)
+  if (resolved) {
+    const resolvedWithSideEffects = await tryAppendSideEffects(resolved)
+    const resolvedRealPath = await tryRealPath(
+      resolvedWithSideEffects,
+      opts.preserveSymlinks
+    )
+
+    if (opts.postPackageResolve && !('error' in resolvedRealPath)) {
+      // should be ok since resolvedRealPath.error doesn't exist
+      const originalResolvedId = (resolved as NonErrorResolveResult).id
+
+      const isResolvedFileFormat = await esmFileFormat(
+        originalResolvedId /* use non-realpath for cache hit */
+      )
+      const newId = await opts.postPackageResolve(
+        id,
+        resolvedRealPath,
+        isResolvedFileFormat === 'commonjs'
+      )
+      if (resolvedRealPath.id !== newId) {
+        resolvedRealPath.id = newId
+      }
+    }
+    return resolvedRealPath
+  }
+
   return null
 }
 
@@ -88,10 +137,10 @@ export async function packageResolve(
   // 7. - 8.
   const selfPath = await packageSelfResolve(pkgName, subpath, importer, opts)
   if (selfPath) {
-    return await tryBrowserFieldMapping(selfPath, importer, opts)
+    return selfPath
   }
 
-  const bareBrowserFieldMapped = await resolveBareBrowserFieldMapping(
+  const bareBrowserFieldMapped = await tryBareBrowserFieldMapping(
     id,
     importer,
     opts
@@ -109,7 +158,7 @@ export async function packageResolve(
     external
   )
   if (resolved) {
-    return await tryBrowserFieldMapping(resolved, importer, opts)
+    return resolved
   }
 
   if (opts.nodeBuiltin !== 'only-builtin' && isBuiltinModule(id)) {

@@ -1,53 +1,42 @@
 // https://github.com/defunctzombie/package-browser-field-spec
+// https://github.com/evanw/package-json-browser-tests
 
 import path from 'node:path'
 import { browserExternalId } from '../plugins/resolve'
 import { isObject, normalizePath } from '../utils'
-import { loadAsFile } from './cjsSpec'
 import type { ResolveResult } from './customUtils'
 import { readPackageJson } from './customUtils'
 import { lookupPackageScope } from './esmSpec'
 import type { RequiredInternalResolveOptions } from './options'
+import { packageResolveExtended, pathResolve } from './resolvers'
 
-export async function tryBrowserFieldMapping(
-  /** NOTE: should pass non-realpathed id */
-  resolved: Exclude<ResolveResult, null>,
-  importer: string,
+export async function tryRelativeBrowserFieldMapping(
+  absolutePath: string,
   opts: RequiredInternalResolveOptions
 ): Promise<ResolveResult> {
-  if (!opts.mainFields.includes('browser')) return resolved
-  if ('error' in resolved) return resolved
-  if (resolved.external) return resolved
+  if (!opts.mainFields.includes('browser')) return null
 
-  const packagePath = await lookupPackageScope(importer)
-  if (!packagePath) return resolved
+  const packagePath = await lookupPackageScope(absolutePath)
+  if (!packagePath) return null
 
   const pkgJson = await readPackageJson(packagePath)
-  if (!pkgJson?.browser) return resolved
+  if (!pkgJson?.browser || !isObject(pkgJson.browser)) return null
 
-  const subpath = normalizePath(path.relative(packagePath, resolved.id))
-  const mapped = resolveBrowserField(pkgJson, subpath)
-  if (mapped) {
-    const mappedAbsolute = normalizePath(path.resolve(packagePath, subpath))
-    const resolvedMapped = await loadAsFile(mappedAbsolute, opts.extensions)
-    if (resolvedMapped) {
-      resolved.id = resolvedMapped
-    } else {
-      return {
-        error: `"browser" field of ${JSON.stringify(
-          packagePath
-        )} mapped ${JSON.stringify(resolved.id)} to ${JSON.stringify(
-          mappedAbsolute
-        )} but that doesn't resolve to any file.`
-      }
-    }
-  } else if (mapped === false) {
-    resolved.id = browserExternalId
+  const relativePath = getRelativePath(packagePath, absolutePath)
+  if (relativePath === '.') {
+    // no bundler supports remapping "."
+    return null
   }
-  return resolved
+
+  const remapped = mapWithBrowserField(
+    pkgJson.browser,
+    relativePath,
+    opts.extensions
+  )
+  return await resolveMappedPath(remapped, packagePath, opts)
 }
 
-export async function resolveBareBrowserFieldMapping(
+export async function tryBareBrowserFieldMapping(
   id: string,
   importer: string,
   opts: RequiredInternalResolveOptions
@@ -58,45 +47,63 @@ export async function resolveBareBrowserFieldMapping(
   if (!packagePath) return null
 
   const pkgJson = await readPackageJson(packagePath)
-  if (!pkgJson?.browser) return null
+  if (!pkgJson?.browser || !isObject(pkgJson.browser)) return null
 
-  const mapped = resolveBrowserField(pkgJson, id)
-  if (!mapped) return null
-
-  const mappedAbsolute = normalizePath(path.resolve(packagePath, mapped))
-  const resolvedMapped = await loadAsFile(mappedAbsolute, opts.extensions)
-  if (!resolvedMapped) {
-    return {
-      error: `"browser" field of ${JSON.stringify(
-        packagePath
-      )} mapped ${JSON.stringify(id)} to ${JSON.stringify(
-        mappedAbsolute
-      )} but that doesn't resolve to any file.`
-    }
+  const remapped = mapWithBrowserField(pkgJson.browser, id, opts.extensions)
+  if (remapped || remapped === false) {
+    return await resolveMappedPath(remapped, packagePath, opts)
   }
 
-  return { id: resolvedMapped }
+  // browser field maps "require('pkg')" to './pkg' entry
+  const relativePath = `${getRelativePath(packagePath, importer)}/${id}`
+  const remappedFallback = mapWithBrowserField(
+    pkgJson.browser,
+    relativePath,
+    [] // doesn't match with './pkg.js' entry
+  )
+  return await resolveMappedPath(remappedFallback, packagePath, opts)
 }
 
-export function resolveBrowserField(
-  browserField: string | Record<string, string | false>,
-  subpath: string
-): string | false | null {
-  if (typeof browserField === 'string') {
-    if (subpath === '.') {
-      return browserField
-    }
+export async function tryMainFieldBrowserFieldMapping(
+  mainField: string,
+  browserField: string | Record<string, string | false> | undefined,
+  opts: RequiredInternalResolveOptions
+): Promise<string | false | null> {
+  if (!browserField || !isObject(browserField)) return null
+  if (!opts.mainFields.includes('browser')) return null
+
+  const normalizedMainField = !mainField.startsWith('./')
+    ? `./${mainField}`
+    : mainField
+
+  return mapWithBrowserField(browserField, normalizedMainField, opts.extensions)
+}
+
+function getRelativePath(from: string, to: string): string {
+  const relative = normalizePath(path.relative(from, to))
+  if (relative === '.' || relative === '..' || relative.startsWith('../')) {
+    return relative
+  }
+  return `./${relative}`
+}
+
+async function resolveMappedPath(
+  id: string | false | null,
+  importerDir: string,
+  opts: RequiredInternalResolveOptions
+): Promise<ResolveResult> {
+  if (id === false) {
+    return { id: browserExternalId }
+  }
+  if (!id) {
     return null
   }
 
-  if (isObject(browserField)) {
-    if (subpath === '.') {
-      return browserField['.']
-    }
-    return mapWithBrowserField(subpath, browserField)
+  const importer = importerDir + '/dummy'
+  if (id.startsWith('./')) {
+    return await pathResolve(id, importer, opts, false)
   }
-
-  return null
+  return await packageResolveExtended(id, importer, opts)
 }
 
 /**
@@ -108,25 +115,49 @@ export function resolveBrowserField(
  * - Returning `false` means this id is explicitly externalized for browser
  */
 function mapWithBrowserField(
+  map: Record<string, string | false>,
   relativePathInPkgDir: string,
-  map: Record<string, string | false>
+  extensions: string[]
 ): string | false | null {
-  const normalizedPath = path.posix.normalize(relativePathInPkgDir)
+  const remapped = internalMapWithBrowserField(
+    map,
+    relativePathInPkgDir,
+    extensions
+  )
+  if (remapped || remapped === false) {
+    return remapped
+  }
 
-  for (const key in map) {
-    const normalizedKey = path.posix.normalize(key)
-    if (
-      normalizedPath === normalizedKey ||
-      equalWithoutSuffix(normalizedPath, normalizedKey, '.js') ||
-      equalWithoutSuffix(normalizedPath, normalizedKey, '/index') ||
-      equalWithoutSuffix(normalizedPath, normalizedKey, '/index.js')
-    ) {
-      return map[key]
+  const relativeIndexPathInPkgDir = relativePathInPkgDir + '/index'
+  return internalMapWithBrowserField(map, relativeIndexPathInPkgDir, extensions)
+}
+
+function internalMapWithBrowserField(
+  map: Record<string, string | false>,
+  relativePathInPkgDir: string,
+  extensions: string[]
+): string | false | null {
+  const remapped = map[relativePathInPkgDir]
+  if (remapped !== undefined) {
+    return remapped
+  }
+
+  for (const ext of extensions) {
+    const remapped = map[`${relativePathInPkgDir}.${ext}`]
+    if (remapped !== undefined) {
+      return remapped
     }
   }
   return null
 }
 
-function equalWithoutSuffix(path: string, key: string, suffix: string) {
-  return key.endsWith(suffix) && key.slice(0, -suffix.length) === path
+export function resolveSimpleBrowserField(
+  browserField: string | Record<string, string | false>
+): string | null {
+  if (typeof browserField === 'string') {
+    return browserField
+  }
+  // don't do anything if browserField is object
+  // because no bundler supports remapping "."
+  return null
 }
