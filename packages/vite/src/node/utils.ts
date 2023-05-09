@@ -560,14 +560,13 @@ export function copyDir(
   copyMode?: number,
 ): void {
   fs.mkdirSync(destDir, { recursive: true })
-  for (const file of fs.readdirSync(srcDir)) {
-    const srcFile = path.resolve(srcDir, file)
+  for (const dirent of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    const srcFile = path.resolve(srcDir, dirent.name)
     if (srcFile === destDir) {
       continue
     }
-    const destFile = path.resolve(destDir, file)
-    const stat = fs.statSync(srcFile)
-    if (stat.isDirectory()) {
+    const destFile = path.resolve(destDir, dirent.name)
+    if (dirent.isDirectory()) {
       copyDir(srcFile, destFile, copyMode)
     } else {
       fs.copyFileSync(srcFile, destFile, copyMode)
