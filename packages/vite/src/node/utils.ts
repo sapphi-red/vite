@@ -554,7 +554,11 @@ export function emptyDir(dir: string, skip?: string[]): void {
   }
 }
 
-export function copyDir(srcDir: string, destDir: string): void {
+export function copyDir(
+  srcDir: string,
+  destDir: string,
+  copyMode?: number,
+): void {
   fs.mkdirSync(destDir, { recursive: true })
   for (const file of fs.readdirSync(srcDir)) {
     const srcFile = path.resolve(srcDir, file)
@@ -564,9 +568,9 @@ export function copyDir(srcDir: string, destDir: string): void {
     const destFile = path.resolve(destDir, file)
     const stat = fs.statSync(srcFile)
     if (stat.isDirectory()) {
-      copyDir(srcFile, destFile)
+      copyDir(srcFile, destFile, copyMode)
     } else {
-      fs.copyFileSync(srcFile, destFile)
+      fs.copyFileSync(srcFile, destFile, copyMode)
     }
   }
 }

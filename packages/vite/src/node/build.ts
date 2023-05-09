@@ -766,7 +766,7 @@ function prepareOutDir(
           ),
         )
       }
-      copyDir(config.publicDir, outDir)
+      copyDir(config.publicDir, outDir, fs.constants.COPYFILE_FICLONE)
     }
   }
 }
