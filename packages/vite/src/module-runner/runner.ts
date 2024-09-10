@@ -183,6 +183,14 @@ export class ModuleRunner {
 
     if (importee) importers.add(importee)
 
+    console.log(
+      'cachedReq',
+      id,
+      `cached: ${!!mod.promise}`,
+      callstack,
+      `circular: ${callstack.includes(moduleUrl)} / ${this.isCircularModule(mod)} / ${this.isCircularImport(importers, moduleUrl)}`,
+      `exports: ${!!mod.exports}`,
+    )
     // check circular dependency
     if (
       callstack.includes(moduleUrl) ||
@@ -207,7 +215,6 @@ export class ModuleRunner {
       }, 2000)
     }
 
-    console.log('cachedReq', id, `cached: ${!!mod.promise}`, callstack)
     try {
       // cached module
       if (mod.promise)
