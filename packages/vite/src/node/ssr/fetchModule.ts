@@ -101,7 +101,7 @@ export async function fetchModule(
   const cached = !!mod?.transformResult
 
   // eslint-disable-next-line no-console
-  console.log('fetchModule', url, `invalidate: ${!cached}`)
+  console.log('fetchModule', url, `mod: ${!!mod}`, `invalidate: ${!cached}`)
   // if url is already cached, we can just confirm it's also cached on the server
   if (options.cached && cached) {
     return { cache: true }
@@ -136,8 +136,6 @@ export async function fetchModule(
   if (result.code[0] === '#')
     result.code = result.code.replace(/^#!.*/, (s) => ' '.repeat(s.length))
 
-  // eslint-disable-next-line no-console
-  console.log('fetchModule done', url)
   return {
     code: result.code,
     file: mod.file,
