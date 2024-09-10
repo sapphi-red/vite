@@ -189,7 +189,7 @@ export class ModuleRunner {
       this.isCircularModule(mod) ||
       this.isCircularImport(importers, moduleUrl)
     ) {
-      console.log('cachedReq', id, callstack, `exports: ${!!mod.exports}`)
+      await mod.promise
       if (mod.exports) return this.processImport(mod.exports, meta, metadata)
     }
 
