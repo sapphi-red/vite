@@ -205,6 +205,8 @@ export class EnvironmentModuleGraph {
     if (etag) this.etagToModuleMap.delete(etag)
 
     mod.transformResult = null
+    // eslint-disable-next-line no-console
+    console.log('mod.transformResult = null', mod.id)
 
     mod.ssrModule = null
     mod.ssrError = null
