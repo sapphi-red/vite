@@ -183,7 +183,6 @@ export class ModuleRunner {
 
     if (importee) importers.add(importee)
 
-    console.log('cachedRequest', id, !!mod, !!mod.exports)
     // check circular dependency
     if (
       callstack.includes(moduleUrl) ||
@@ -289,7 +288,6 @@ export class ModuleRunner {
     const mod = this.moduleCache.getByModuleId(moduleUrl)
 
     if ('invalidate' in fetchedModule && fetchedModule.invalidate) {
-      console.log('invalidate', url)
       this.moduleCache.invalidateModule(mod)
     }
 
