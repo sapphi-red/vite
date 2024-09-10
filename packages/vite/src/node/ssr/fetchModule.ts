@@ -100,6 +100,8 @@ export async function fetchModule(
   let mod = await environment.moduleGraph.getModuleByUrl(url)
   const cached = !!mod?.transformResult
 
+  // eslint-disable-next-line no-console
+  console.log('fetchModule', url, `invalidate: ${!cached}`)
   // if url is already cached, we can just confirm it's also cached on the server
   if (options.cached && cached) {
     return { cache: true }
