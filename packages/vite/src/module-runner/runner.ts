@@ -189,8 +189,7 @@ export class ModuleRunner {
       this.isCircularModule(mod) ||
       this.isCircularImport(importers, moduleUrl)
     ) {
-      await mod.promise
-      if (mod.exports) return this.processImport(mod.exports, meta, metadata)
+      return this.processImport(mod.exports, meta, metadata)
     }
 
     let debugTimer: any
