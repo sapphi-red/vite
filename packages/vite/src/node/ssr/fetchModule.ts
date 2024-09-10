@@ -136,6 +136,8 @@ export async function fetchModule(
   if (result.code[0] === '#')
     result.code = result.code.replace(/^#!.*/, (s) => ' '.repeat(s.length))
 
+  // eslint-disable-next-line no-console
+  console.log('fetchModule done', url)
   return {
     code: result.code,
     file: mod.file,

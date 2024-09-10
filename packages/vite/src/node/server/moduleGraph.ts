@@ -170,8 +170,6 @@ export class EnvironmentModuleGraph {
     /** @internal */
     softInvalidate = false,
   ): void {
-    // eslint-disable-next-line no-console
-    console.log('invalidateModule', mod.url)
     const prevInvalidationState = mod.invalidationState
 
     // Handle soft invalidation before the `seen` check, as consecutive soft/hard invalidations can
