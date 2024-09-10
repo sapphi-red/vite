@@ -422,6 +422,8 @@ async function loadAndTransform(
         etag: getEtag(code, { weak: true }),
       } satisfies TransformResult)
 
+  // eslint-disable-next-line no-console
+  console.log('loadAndTransform', timestamp, mod.lastInvalidationTimestamp)
   // Only cache the result if the module wasn't invalidated while it was
   // being processed, so it is re-processed next time if it is stale
   if (timestamp > mod.lastInvalidationTimestamp)
@@ -516,6 +518,12 @@ async function handleModuleSoftInvalidation(
     }
   }
 
+  // eslint-disable-next-line no-console
+  console.log(
+    'handleModuleSoftInvalidation',
+    timestamp,
+    mod.lastInvalidationTimestamp,
+  )
   // Only cache the result if the module wasn't invalidated while it was
   // being processed, so it is re-processed next time if it is stale
   if (timestamp > mod.lastInvalidationTimestamp)
