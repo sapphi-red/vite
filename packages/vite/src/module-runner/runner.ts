@@ -207,6 +207,7 @@ export class ModuleRunner {
       }, 2000)
     }
 
+    console.log('cachedReq', id, `cached: ${!!mod.promise}`, callstack)
     try {
       // cached module
       if (mod.promise)
@@ -232,12 +233,6 @@ export class ModuleRunner {
     }
 
     let cached = this.moduleInfoCache.get(url)
-    console.log(
-      'cachedModule',
-      url,
-      `cached: ${!!cached}`,
-      `importer: ${importer}`,
-    )
     if (!cached) {
       cached = this.getModuleInformation(url, importer, cachedModule).finally(
         () => {
