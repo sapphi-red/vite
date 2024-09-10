@@ -232,6 +232,12 @@ export class ModuleRunner {
     }
 
     let cached = this.moduleInfoCache.get(url)
+    console.log(
+      'cachedModule',
+      url,
+      `cached: ${!!cached}`,
+      `importer: ${importer}`,
+    )
     if (!cached) {
       cached = this.getModuleInformation(url, importer, cachedModule).finally(
         () => {
@@ -288,7 +294,6 @@ export class ModuleRunner {
     const mod = this.moduleCache.getByModuleId(moduleUrl)
 
     if ('invalidate' in fetchedModule && fetchedModule.invalidate) {
-      console.log('invalidate', url)
       this.moduleCache.invalidateModule(mod)
     }
 
