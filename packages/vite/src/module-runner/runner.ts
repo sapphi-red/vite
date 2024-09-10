@@ -288,6 +288,7 @@ export class ModuleRunner {
     const mod = this.moduleCache.getByModuleId(moduleUrl)
 
     if ('invalidate' in fetchedModule && fetchedModule.invalidate) {
+      console.log('invalidate', url)
       this.moduleCache.invalidateModule(mod)
     }
 
