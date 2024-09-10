@@ -189,6 +189,15 @@ export class ModuleRunner {
       this.isCircularModule(mod) ||
       this.isCircularImport(importers, moduleUrl)
     ) {
+      if (!mod.exports) {
+        const exports = Object.create(null)
+        Object.defineProperty(exports, Symbol.toStringTag, {
+          value: 'Module',
+          enumerable: false,
+          configurable: false,
+        })
+        mod.exports = exports
+      }
       return this.processImport(mod.exports, meta, metadata)
     }
 
@@ -374,14 +383,17 @@ export class ModuleRunner {
         throw new Error('[module runner] "import.meta.glob" is not supported.')
       },
     }
-    const exports = Object.create(null)
-    Object.defineProperty(exports, Symbol.toStringTag, {
-      value: 'Module',
-      enumerable: false,
-      configurable: false,
-    })
 
-    mod.exports = exports
+    if (!mod.exports) {
+      const exports = Object.create(null)
+      Object.defineProperty(exports, Symbol.toStringTag, {
+        value: 'Module',
+        enumerable: false,
+        configurable: false,
+      })
+      mod.exports = exports
+    }
+    const exports = mod.exports
 
     let hotContext: ViteHotContext | undefined
     if (this.hmrClient) {
