@@ -520,10 +520,6 @@ async function handleModuleSoftInvalidation(
   // being processed, so it is re-processed next time if it is stale
   if (timestamp > mod.lastInvalidationTimestamp)
     environment.moduleGraph.updateModuleTransformResult(mod, result)
-  else {
-    // eslint-disable-next-line no-console
-    console.log('handleModuleSoftInvalidation', 'skipped update', mod.url)
-  }
 
   return result
 }
