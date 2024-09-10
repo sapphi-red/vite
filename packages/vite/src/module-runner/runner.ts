@@ -183,20 +183,13 @@ export class ModuleRunner {
 
     if (importee) importers.add(importee)
 
-    console.log(
-      'cachedReq',
-      id,
-      `cached: ${!!mod.promise}`,
-      callstack,
-      `circular: ${callstack.includes(moduleUrl)} / ${this.isCircularModule(mod)} / ${this.isCircularImport(importers, moduleUrl)}`,
-      `exports: ${!!mod.exports}`,
-    )
     // check circular dependency
     if (
       callstack.includes(moduleUrl) ||
       this.isCircularModule(mod) ||
       this.isCircularImport(importers, moduleUrl)
     ) {
+      console.log('cachedReq', id, callstack, `exports: ${!!mod.exports}`)
       if (mod.exports) return this.processImport(mod.exports, meta, metadata)
     }
 
