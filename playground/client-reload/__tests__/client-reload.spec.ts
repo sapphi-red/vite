@@ -1,5 +1,5 @@
 import path from 'node:path'
-import type { ConsoleMessage } from 'playwright-chromium'
+import type { ConsoleMessage, Request } from 'playwright-chromium'
 import { type ServerOptions, type ViteDevServer, createServer } from 'vite'
 import { afterEach, describe, expect, test } from 'vitest'
 import { hmrPorts, isServe, page, ports } from '~utils'
@@ -38,7 +38,17 @@ async function testClientReload(serverOptions: ServerOptions) {
   const onMessage = (message: ConsoleMessage) => {
     console.log('message', message.type(), message.text())
   }
+  const onRequest = (request: Request) => {
+    if (!request.isNavigationRequest()) return
+    request.response().then(async (res) => {
+      console.log('request', request.url())
+      if (res.ok()) {
+        console.log('response', res.status(), (await res.body()).toString())
+      }
+    })
+  }
   page.on('console', onMessage)
+  page.on('requestfinished', onRequest)
   try {
     // restart and wait for reconnection after reload
     const reConnectedPromise = page.waitForEvent('console', {

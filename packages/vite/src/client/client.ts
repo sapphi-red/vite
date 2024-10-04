@@ -91,10 +91,6 @@ function setupWebSocket(
     handleMessage(JSON.parse(data))
   })
 
-  socket.addEventListener('error', (event) => {
-    console.log('error', event)
-  })
-
   // ping server
   socket.addEventListener('close', async ({ wasClean }) => {
     if (wasClean) return
@@ -331,19 +327,12 @@ function hasErrorOverlay() {
   return document.querySelectorAll(overlayId).length
 }
 
-// AbortSignal.timeout
-function AbortSignalTimeout(time: number) {
-  const controller = new AbortController()
-  setTimeout(() => controller.abort(), time)
-  return controller.signal
-}
-
 async function waitForSuccessfulPing(
   socketProtocol: string,
   hostAndPath: string,
   ms = 1000,
 ) {
-  async function ping(signal: AbortSignal) {
+  async function ping() {
     const socket = new WebSocket(
       `${socketProtocol}://${hostAndPath}`,
       'vite-ping',
@@ -353,42 +342,28 @@ async function waitForSuccessfulPing(
         resolve(true)
         close()
       }
-      function onError(e: any) {
-        console.error('failed ping', e)
-        resolve(false)
-        close()
-      }
-      function onAbort() {
-        console.error('aborted')
+      function onError() {
         resolve(false)
         close()
       }
       function close() {
         socket.removeEventListener('open', onOpen)
         socket.removeEventListener('error', onError)
-        signal.removeEventListener('abort', onAbort)
         socket.close()
       }
       socket.addEventListener('open', onOpen)
       socket.addEventListener('error', onError)
-      signal.addEventListener('abort', onAbort)
-      if (signal.aborted) {
-        close()
-      }
     })
   }
 
-  console.log('1')
-  if (await ping(AbortSignalTimeout(ms))) {
+  if (await ping()) {
     return
   }
   await wait(ms)
-  console.log('2')
 
   while (true) {
-    console.log('3', document.visibilityState)
     if (document.visibilityState === 'visible') {
-      if (await ping(AbortSignalTimeout(ms))) {
+      if (await ping()) {
         break
       }
       await wait(ms)
