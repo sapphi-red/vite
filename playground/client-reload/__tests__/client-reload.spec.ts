@@ -34,6 +34,10 @@ async function testClientReload(serverOptions: ServerOptions) {
   // input state
   await page.locator('input').fill('hello')
 
+  page.on('console', (message) => {
+    console.log('message', message.text())
+  })
+
   // restart and wait for reconnection after reload
   const reConnectedPromise = page.waitForEvent('console', {
     predicate: (message) => message.text().includes('[vite] connected.'),
@@ -44,17 +48,14 @@ async function testClientReload(serverOptions: ServerOptions) {
   expect(await page.textContent('input')).toBe('')
 }
 
-// TODO:
-// running all tests together is flaky.
-// for now, run only the last one with retry.
 describe.runIf(isServe)('client-reload', () => {
-  test.skip('default', async () => {
+  test('default', async () => {
     await testClientReload({
       port: ports['client-reload'],
     })
   })
 
-  test.skip('custom hmr port', async () => {
+  test('custom hmr port', async () => {
     await testClientReload({
       port: ports['client-reload/hmr-port'],
       hmr: {
@@ -63,7 +64,7 @@ describe.runIf(isServe)('client-reload', () => {
     })
   })
 
-  test('custom hmr port and cross origin isolation', { retry: 2 }, async () => {
+  test('custom hmr port and cross origin isolation', async () => {
     await testClientReload({
       port: ports['client-reload/cross-origin'],
       hmr: {
