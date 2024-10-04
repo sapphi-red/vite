@@ -330,12 +330,19 @@ function hasErrorOverlay() {
   return document.querySelectorAll(overlayId).length
 }
 
+// AbortSignal.timeout
+function AbortSignalTimeout(time: number) {
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), time)
+  return controller.signal
+}
+
 async function waitForSuccessfulPing(
   socketProtocol: string,
   hostAndPath: string,
   ms = 1000,
 ) {
-  async function ping() {
+  async function ping(signal: AbortSignal) {
     const socket = new WebSocket(
       `${socketProtocol}://${hostAndPath}`,
       'vite-ping',
@@ -350,24 +357,31 @@ async function waitForSuccessfulPing(
         resolve(false)
         close()
       }
+      function onAbort() {
+        console.error('aborted')
+        resolve(false)
+        close()
+      }
       function close() {
         socket.removeEventListener('open', onOpen)
         socket.removeEventListener('error', onError)
+        signal.removeEventListener('abort', onAbort)
         socket.close()
       }
       socket.addEventListener('open', onOpen)
       socket.addEventListener('error', onError)
+      signal.addEventListener('abort', onAbort)
     })
   }
 
-  if (await ping()) {
+  if (await ping(AbortSignalTimeout(ms))) {
     return
   }
   await wait(ms)
 
   while (true) {
     if (document.visibilityState === 'visible') {
-      if (await ping()) {
+      if (await ping(AbortSignalTimeout(ms))) {
         break
       }
       await wait(ms)
