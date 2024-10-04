@@ -345,7 +345,8 @@ async function waitForSuccessfulPing(
         resolve(true)
         close()
       }
-      function onError() {
+      function onError(e: any) {
+        console.error('failed ping', e)
         resolve(false)
         close()
       }

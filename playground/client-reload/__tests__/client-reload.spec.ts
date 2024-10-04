@@ -1,4 +1,5 @@
 import path from 'node:path'
+import type { ConsoleMessage } from 'playwright-chromium'
 import { type ServerOptions, type ViteDevServer, createServer } from 'vite'
 import { afterEach, describe, expect, test } from 'vitest'
 import { hmrPorts, isServe, page, ports } from '~utils'
@@ -34,8 +35,8 @@ async function testClientReload(serverOptions: ServerOptions) {
   // input state
   await page.locator('input').fill('hello')
 
-  const onMessage = (message) => {
-    console.log('message', message.text())
+  const onMessage = (message: ConsoleMessage) => {
+    console.log('message', message.type(), message.text())
   }
   page.on('console', onMessage)
   try {
