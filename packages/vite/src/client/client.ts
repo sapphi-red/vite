@@ -109,6 +109,7 @@ function setupWebSocket(
     if (hasDocument) {
       console.log(`[vite] server connection lost. Polling for restart...`)
       await waitForSuccessfulPing(protocol, hostAndPath)
+      console.log('reload')
       location.reload()
     }
   })
@@ -371,15 +372,21 @@ async function waitForSuccessfulPing(
       socket.addEventListener('open', onOpen)
       socket.addEventListener('error', onError)
       signal.addEventListener('abort', onAbort)
+      if (signal.aborted) {
+        close()
+      }
     })
   }
 
+  console.log('1')
   if (await ping(AbortSignalTimeout(ms))) {
     return
   }
   await wait(ms)
+  console.log('2')
 
   while (true) {
+    console.log('3', document.visibilityState)
     if (document.visibilityState === 'visible') {
       if (await ping(AbortSignalTimeout(ms))) {
         break
