@@ -91,6 +91,10 @@ function setupWebSocket(
     handleMessage(JSON.parse(data))
   })
 
+  socket.addEventListener('error', (event) => {
+    console.log('error', event)
+  })
+
   // ping server
   socket.addEventListener('close', async ({ wasClean }) => {
     if (wasClean) return
