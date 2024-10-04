@@ -8,13 +8,15 @@ let server: ViteDevServer
 
 afterEach(async () => {
   await server?.close()
+  process.env.DEBUG = ''
 })
 
 async function testClientReload(serverOptions: ServerOptions) {
+  process.env.DEBUG = 'vite:*'
   // start server
   server = await createServer({
     root: path.resolve(import.meta.dirname, '..'),
-    logLevel: 'silent',
+    logLevel: 'info',
     server: {
       strictPort: true,
       ...serverOptions,
@@ -35,39 +37,17 @@ async function testClientReload(serverOptions: ServerOptions) {
   // input state
   await page.locator('input').fill('hello')
 
-  const onRequest = (request: Request) => {
-    console.log(
-      'request',
-      request.method(),
-      request.url(),
-      request.isNavigationRequest(),
-    )
-
-    request.response().then((res) => {
-      console.log('response', request.url(), res.status())
-      if (res.ok()) {
-        res.body().then((body) => {
-          console.log('body', request.url(), body.toString())
-        })
-      }
-    })
-  }
-  page.on('requestfinished', onRequest)
-  try {
-    // restart and wait for reconnection after reload
-    const reConnectedPromise = page.waitForEvent('console', {
-      predicate: (message) => message.text().includes('[vite] connected.'),
-      timeout: 10000,
-    })
-    console.log('before restart')
-    await server.restart()
-    console.log('after restart')
-    await reConnectedPromise
-    console.log('reconnected')
-    expect(await page.textContent('input')).toBe('')
-  } finally {
-    page.off('request', onRequest)
-  }
+  // restart and wait for reconnection after reload
+  const reConnectedPromise = page.waitForEvent('console', {
+    predicate: (message) => message.text().includes('[vite] connected.'),
+    timeout: 5000,
+  })
+  console.log('before restart')
+  await server.restart()
+  console.log('after restart')
+  await reConnectedPromise
+  console.log('reconnected')
+  expect(await page.textContent('input')).toBe('')
 }
 
 describe.runIf(isServe)('client-reload', () => {
