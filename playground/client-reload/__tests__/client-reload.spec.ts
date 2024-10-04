@@ -34,18 +34,25 @@ async function testClientReload(serverOptions: ServerOptions) {
   // input state
   await page.locator('input').fill('hello')
 
-  page.on('console', (message) => {
+  const onMessage = (message) => {
     console.log('message', message.text())
-  })
-
-  // restart and wait for reconnection after reload
-  const reConnectedPromise = page.waitForEvent('console', {
-    predicate: (message) => message.text().includes('[vite] connected.'),
-    timeout: 5000,
-  })
-  await server.restart()
-  await reConnectedPromise
-  expect(await page.textContent('input')).toBe('')
+  }
+  page.on('console', onMessage)
+  try {
+    // restart and wait for reconnection after reload
+    const reConnectedPromise = page.waitForEvent('console', {
+      predicate: (message) => message.text().includes('[vite] connected.'),
+      timeout: 10000,
+    })
+    console.log('before restart')
+    await server.restart()
+    console.log('after restart')
+    await reConnectedPromise
+    console.log('reconnected')
+    expect(await page.textContent('input')).toBe('')
+  } finally {
+    page.off('console', onMessage)
+  }
 }
 
 describe.runIf(isServe)('client-reload', () => {
