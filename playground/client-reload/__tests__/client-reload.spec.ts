@@ -41,9 +41,7 @@ async function testClientReload(serverOptions: ServerOptions) {
   page.on('console', onMessage)
   try {
     // restart and wait for reconnection after reload
-    const reloadPromise = page.waitForEvent('domcontentloaded', {
-      timeout: 1000,
-    })
+    const reloadPromise = page.waitForURL(page.url(), { timeout: 1000 })
     await server.restart()
     await reloadPromise
 
