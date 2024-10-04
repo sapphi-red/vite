@@ -42,8 +42,17 @@ async function testClientReload(serverOptions: ServerOptions) {
       request.url(),
       request.isNavigationRequest(),
     )
+
+    request.response().then((res) => {
+      console.log('response', request.url(), res.status())
+      if (res.ok()) {
+        res.body().then((body) => {
+          console.log('body', request.url(), body.toString())
+        })
+      }
+    })
   }
-  page.on('request', onRequest)
+  page.on('requestfinished', onRequest)
   try {
     // restart and wait for reconnection after reload
     const reConnectedPromise = page.waitForEvent('console', {
