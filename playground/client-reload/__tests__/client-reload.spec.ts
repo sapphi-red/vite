@@ -34,17 +34,14 @@ async function testClientReload(serverOptions: ServerOptions) {
   // input state
   await page.locator('input').fill('hello')
 
-  const wsPromise = page.waitForEvent('websocket', { timeout: 5000 })
+  // restart and wait for reconnection after reload
+  const reConnectedPromise = page.waitForEvent('console', {
+    predicate: (message) => message.text().includes('[vite] connected.'),
+    timeout: 5000,
+  })
   await server.restart()
-  await wsPromise
-
-  const content = await page.innerHTML('body')
-  try {
-    expect(await page.textContent('input')).toBe('')
-  } catch (e) {
-    console.error('content', content)
-    throw e
-  }
+  await reConnectedPromise
+  expect(await page.textContent('input')).toBe('')
 }
 
 describe.runIf(isServe)('client-reload', () => {
