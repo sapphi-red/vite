@@ -38,7 +38,13 @@ async function testClientReload(serverOptions: ServerOptions) {
   await server.restart()
   await wsPromise
 
-  expect(await page.textContent('input')).toBe('')
+  const content = await page.innerHTML('body')
+  try {
+    expect(await page.textContent('input')).toBe('')
+  } catch (e) {
+    console.error('content', content)
+    throw e
+  }
 }
 
 describe.runIf(isServe)('client-reload', () => {
