@@ -105,13 +105,7 @@ function setupWebSocket(
     if (hasDocument) {
       console.log(`[vite] server connection lost. Polling for restart...`)
       await waitForSuccessfulPing(protocol, hostAndPath)
-      console.log('reload')
-      try {
-        location.reload()
-        console.log('reloaded')
-      } catch (e) {
-        console.error('reload failed', e)
-      }
+      location.reload()
     }
   })
 

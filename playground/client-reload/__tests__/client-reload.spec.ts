@@ -1,5 +1,4 @@
 import path from 'node:path'
-import type { ConsoleMessage } from 'playwright-chromium'
 import { type ServerOptions, type ViteDevServer, createServer } from 'vite'
 import { afterEach, describe, expect, test } from 'vitest'
 import { hmrPorts, isServe, page, ports } from '~utils'
@@ -35,24 +34,16 @@ async function testClientReload(serverOptions: ServerOptions) {
   // input state
   await page.locator('input').fill('hello')
 
-  const onMessage = (message: ConsoleMessage) => {
-    console.log('message', message.type(), message.text())
-  }
-  page.on('console', onMessage)
-  try {
-    // restart and wait for reconnection after reload
-    const reloadPromise = page.waitForURL(page.url(), { timeout: 1000 })
-    await server.restart()
-    await reloadPromise
+  // restart and wait for reconnection after reload
+  const reloadPromise = page.waitForURL(page.url(), { timeout: 1000 })
+  await server.restart()
+  await reloadPromise
 
-    await page.waitForEvent('console', {
-      predicate: (message) => message.text().includes('[vite] connected.'),
-      timeout: 5000,
-    })
-    expect(await page.textContent('input')).toBe('')
-  } finally {
-    page.off('console', onMessage)
-  }
+  await page.waitForEvent('console', {
+    predicate: (message) => message.text().includes('[vite] connected.'),
+    timeout: 5000,
+  })
+  expect(await page.textContent('input')).toBe('')
 }
 
 describe.runIf(isServe)('client-reload', () => {
