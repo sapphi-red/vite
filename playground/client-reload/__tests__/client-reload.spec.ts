@@ -41,7 +41,7 @@ async function testClientReload(serverOptions: ServerOptions) {
   const onRequest = (request: Request) => {
     if (!request.isNavigationRequest()) return
     request.response().then(async (res) => {
-      console.log('request', request.url())
+      console.log('request', request.url(), res.status(), res.statusText())
       if (res.ok()) {
         console.log('response', res.status(), (await res.body()).toString())
       }
