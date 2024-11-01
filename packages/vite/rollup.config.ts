@@ -1,13 +1,10 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import nodeResolve from '@rollup/plugin-node-resolve'
-import commonjs from '@rollup/plugin-commonjs'
-import json from '@rollup/plugin-json'
+import module from 'node:module'
 import MagicString from 'magic-string'
-import type { Plugin } from 'rollup'
-import { defineConfig } from 'rollup'
-import esbuild, { type Options as esbuildOptions } from 'rollup-plugin-esbuild'
+import type { Plugin } from 'rolldown'
+import { defineConfig } from 'rolldown'
 import licensePlugin from './rollupLicensePlugin'
 
 const pkg = JSON.parse(
@@ -18,46 +15,36 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 const envConfig = defineConfig({
   input: path.resolve(__dirname, 'src/client/env.ts'),
-  plugins: [
-    esbuild({
-      tsconfig: path.resolve(__dirname, 'src/client/tsconfig.json'),
-    }),
-  ],
+  // TODO: target: es2020
+  platform: 'browser',
   output: {
-    file: path.resolve(__dirname, 'dist/client', 'env.mjs'),
+    dir: path.resolve(__dirname, 'dist'),
+    entryFileNames: 'client/env.mjs',
   },
 })
 
 const clientConfig = defineConfig({
   input: path.resolve(__dirname, 'src/client/client.ts'),
+  // TODO: target: es2020
+  platform: 'browser',
   external: ['@vite/env'],
-  plugins: [
-    nodeResolve({ preferBuiltins: true }),
-    esbuild({
-      tsconfig: path.resolve(__dirname, 'src/client/tsconfig.json'),
-    }),
-  ],
   output: {
-    file: path.resolve(__dirname, 'dist/client', 'client.mjs'),
+    dir: path.resolve(__dirname, 'dist'),
+    entryFileNames: 'client/client.mjs',
   },
 })
 
+// TODO: `new Set`/`new RegExp` are considered as side-effectful: https://github.com/rolldown/rolldown/issues/2603
 const sharedNodeOptions = defineConfig({
+  platform: 'node',
   treeshake: {
-    moduleSideEffects(id, external) {
-      id = id.replaceAll('\\', '/')
-      // These nested dependencies should be considered side-effect free
-      // as it's not set within their package.json
-      if (
-        id.includes('node_modules/astring') ||
-        id.includes('node_modules/acorn')
-      ) {
-        return false
-      }
-      return !external
-    },
-    propertyReadSideEffects: false,
-    tryCatchDeoptimization: false,
+    // NOTE: https://github.com/rolldown/rolldown/issues/2606
+    moduleSideEffects: new RegExp(
+      `^((?!${['acorn', 'astring', ...Object.keys(pkg.dependencies), ...module.builtinModules.flatMap((m) => [m, `node:${m}`])].join('|')}).)*$`,
+    ),
+    // TODO: not supported
+    //   propertyReadSideEffects: false,
+    //   tryCatchDeoptimization: false,
   },
   output: {
     dir: './dist',
@@ -66,7 +53,12 @@ const sharedNodeOptions = defineConfig({
     exports: 'named',
     format: 'esm',
     externalLiveBindings: false,
-    freeze: false,
+    // NOTE: probably not needed for rolldown
+    // freeze: false,
+
+    // TODO: https://github.com/rolldown/rolldown/issues/2685
+    banner:
+      "import { createRequire as ___createRequire } from 'module'; const require = ___createRequire(import.meta.url);",
   },
   onwarn(warning, warn) {
     if (warning.message.includes('Circular dependency')) {
@@ -75,30 +67,6 @@ const sharedNodeOptions = defineConfig({
     warn(warning)
   },
 })
-
-function createSharedNodePlugins({
-  esbuildOptions,
-}: {
-  esbuildOptions?: esbuildOptions
-}): Plugin[] {
-  return [
-    nodeResolve({ preferBuiltins: true }),
-    esbuild({
-      tsconfig: path.resolve(__dirname, 'src/node/tsconfig.json'),
-      target: 'node18',
-      ...esbuildOptions,
-    }),
-    commonjs({
-      extensions: ['.js'],
-      // Optional peer deps of ws. Native deps that are mostly for performance.
-      // Since ws is not that perf critical for us, just ignore these deps.
-      ignore: ['bufferutil', 'utf-8-validate'],
-      sourceMap: false,
-      strictRequires: 'auto',
-    }),
-    json(),
-  ]
-}
 
 const nodeConfig = defineConfig({
   ...sharedNodeOptions,
@@ -111,6 +79,11 @@ const nodeConfig = defineConfig({
     /^vite\//,
     'rollup/parseAst',
     /^tsx\//,
+    'sugarss', // postcss-import -> sugarss
+    'supports-color',
+    'utf-8-validate', // ws
+    'bufferutil', // ws
+    'typescript', // TODO: not used in output but gets bundled without this https://github.com/rolldown/rolldown/issues/2604
     ...Object.keys(pkg.dependencies),
     ...Object.keys(pkg.peerDependencies),
   ],
@@ -119,19 +92,6 @@ const nodeConfig = defineConfig({
     // generate code that force require them upfront for side effects.
     // Shim them with eval() so rollup can skip these calls.
     shimDepsPlugin({
-      // postcss-import -> sugarss
-      'process-content.js': [
-        {
-          src: 'require("sugarss")',
-          replacement: `__require('sugarss')`,
-        },
-      ],
-      'lilconfig/src/index.js': [
-        {
-          pattern: /: require;/g,
-          replacement: ': __require;',
-        },
-      ],
       'postcss-load-config/src/req.js': [
         {
           src: "const { pathToFileURL } = require('node:url')",
@@ -163,13 +123,12 @@ const nodeConfig = defineConfig({
         },
       ],
     }),
-    ...createSharedNodePlugins({}),
+    // TODO: https://github.com/rolldown/rolldown/issues/2686
     licensePlugin(
       path.resolve(__dirname, 'LICENSE.md'),
       'Vite core license',
       'Vite',
     ),
-    cjsPatchPlugin(),
   ],
 })
 
@@ -183,25 +142,32 @@ const moduleRunnerConfig = defineConfig({
     'rollup/parseAst',
     ...Object.keys(pkg.dependencies),
   ],
-  plugins: [
-    ...createSharedNodePlugins({ esbuildOptions: { minifySyntax: true } }),
-    bundleSizeLimit(53),
-  ],
+  plugins: [bundleSizeLimit(53)],
+  output: {
+    ...sharedNodeOptions.output,
+    minify: true,
+  },
 })
 
 const cjsConfig = defineConfig({
   ...sharedNodeOptions,
+  define: {
+    // TODO: https://github.com/rolldown/rolldown/issues/2609
+    'import.meta.url': "require('u' + 'rl').pathToFileURL(__filename).href",
+  },
   input: {
     publicUtils: path.resolve(__dirname, 'src/node/publicUtils.ts'),
   },
+  // TODO: target node18
   output: {
     ...sharedNodeOptions.output,
-    entryFileNames: `node-cjs/[name].cjs`,
+    entryFileNames: `node-cjs/entries/[name].cjs`,
     chunkFileNames: 'node-cjs/chunks/dep-[hash].js',
     format: 'cjs',
+    banner: undefined,
   },
-  external: Object.keys(pkg.dependencies),
-  plugins: [...createSharedNodePlugins({}), bundleSizeLimit(175)],
+  external: [...Object.keys(pkg.dependencies), 'supports-color'],
+  plugins: [bundleSizeLimit(175)],
 })
 
 export default defineConfig([
@@ -280,33 +246,6 @@ function shimDepsPlugin(deps: Record<string, ShimOptions[]>): Plugin {
           }
         }
       }
-    },
-  }
-}
-
-/**
- * Inject CJS Context for each deps chunk
- */
-function cjsPatchPlugin(): Plugin {
-  const cjsPatch = `
-import { createRequire as __cjs_createRequire } from 'node:module';
-
-const __require = __cjs_createRequire(import.meta.url);
-`.trimStart()
-
-  return {
-    name: 'cjs-chunk-patch',
-    renderChunk(code, chunk) {
-      if (!chunk.fileName.includes('chunks/dep-')) return
-      if (!code.includes('__require')) return
-
-      const match = /^(?:import[\s\S]*?;\s*)+/.exec(code)
-      const index = match ? match.index! + match[0].length : 0
-      const s = new MagicString(code)
-      // inject after the last `import`
-      s.appendRight(index, cjsPatch)
-      console.log('patched cjs context: ' + chunk.fileName)
-      return s.toString()
     },
   }
 }

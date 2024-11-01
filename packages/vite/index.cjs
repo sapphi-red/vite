@@ -4,7 +4,7 @@ warnCjsUsage()
 module.exports.defineConfig = (config) => config
 
 // proxy cjs utils (sync functions)
-Object.assign(module.exports, require('./dist/node-cjs/publicUtils.cjs'))
+Object.assign(module.exports, require('./dist/node-cjs/entries/publicUtils.cjs'))
 
 // async functions, can be redirect from ESM build
 const asyncFunctions = [
