@@ -114,9 +114,6 @@ importers:
       rollup:
         specifier: ^4.30.1
         version: 4.30.1
-      rollup-plugin-esbuild:
-        specifier: ^6.1.1
-        version: 6.1.1(esbuild@0.24.2)(rollup@4.30.1)
       simple-git-hooks:
         specifier: ^2.11.1
         version: 2.11.1
@@ -249,6 +246,9 @@ importers:
       '@jridgewell/trace-mapping':
         specifier: ^0.3.25
         version: 0.3.25
+      '@oxc-project/runtime':
+        specifier: ^0.51.0
+        version: 0.51.0
       '@polka/compression':
         specifier: ^1.0.0-next.25
         version: 1.0.0-next.25
@@ -372,12 +372,12 @@ importers:
       resolve.exports:
         specifier: ^2.0.3
         version: 2.0.3
+      rolldown:
+        specifier: 1.0.0-beta.3-commit.1910872
+        version: 1.0.0-beta.3-commit.1910872(@oxc-project/runtime@0.51.0)(typescript@5.7.2)
       rollup-plugin-dts:
         specifier: ^6.1.1
         version: 6.1.1(rollup@4.30.1)(typescript@5.7.2)
-      rollup-plugin-esbuild:
-        specifier: ^6.1.1
-        version: 6.1.1(esbuild@0.24.2)(rollup@4.30.1)
       rollup-plugin-license:
         specifier: ^3.5.3
         version: 3.5.3(picomatch@4.0.2)(rollup@4.30.1)
@@ -2361,6 +2361,15 @@ packages:
       search-insights:
         optional: true
 
+  '@emnapi/core@1.3.1':
+    resolution: {integrity: sha512-pVGjBIt1Y6gg3EJN8jTcfpP/+uuRksIo055oE/OBkDNcjZqVbfkWCksG1Jp4yZnj3iKWyWX8fdG/j6UDYPbFog==}
+
+  '@emnapi/runtime@1.3.1':
+    resolution: {integrity: sha512-kEBmG8KyqtxJZv+ygbEim+KCGtIq1fC22Ms3S4ziXmYKm8uyoLX0MHONVKwp+9opg390VaKRNt4a7A9NwmpNhw==}
+
+  '@emnapi/wasi-threads@1.0.1':
+    resolution: {integrity: sha512-iIBu7mwkq4UQGeMEM8bLwNK962nXdhodeScX4slfQnRhEMMzvYivHhutCIk8uojvmASXXPC2WNEjwxFWk72Oqw==}
+
   '@esbuild/aix-ppc64@0.23.1':
     resolution: {integrity: sha512-6VhYk1diRqrhBAqpJEdjASR/+WVRtfjpqKuNw11cLiaWpAT/Uu+nokB+UJnevzy/P9C/ty6AOe0dwueMrGh/iQ==}
     engines: {node: '>=18'}
@@ -2773,6 +2782,9 @@ packages:
     resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
     hasBin: true
 
+  '@napi-rs/wasm-runtime@0.2.5':
+    resolution: {integrity: sha512-kwUxR7J9WLutBbulqg1dfOrMTwhMdXLdcGUhcbCcGwnPLt3gz19uHVdwH1syKVDbE022ZS2vZxOWflFLS0YTjw==}
+
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -2784,6 +2796,13 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@oxc-project/runtime@0.51.0':
+    resolution: {integrity: sha512-s/G0/yOpmcD9QY8O1wc4G7nb7BRV9m206PvfM/t3oPu6z+2vyZlfB2kTA9P6vMXO2fzquDMw3G22kCXx4qzfUQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@oxc-project/types@0.51.0':
+    resolution: {integrity: sha512-rDHFQBU2lS0Fh1t1rgvSWK21OfgkzjIWqj+FKKRJueecgvdZ6hO+qqstwBy2v9lFhg2DPuaDdLyCXZNGwsKjMw==}
 
   '@parcel/watcher-android-arm64@2.5.0':
     resolution: {integrity: sha512-qlX4eS28bUcQCdribHkg/herLe+0A9RyYC+mm2PXpncit8z5b3nSqGVzMNR3CmtAOgRutiZ02eIJJgP/b1iEFQ==}
@@ -2881,6 +2900,66 @@ packages:
   '@publint/pack@0.1.1':
     resolution: {integrity: sha512-TvCl79Y8v18ZhFGd5mjO1kYPovSBq3+4LVCi5Nfl1JI8fS8i8kXbgQFGwBJRXczim8GlW8c2LMBKTtExYXOy/A==}
     engines: {node: '>=18'}
+
+  '@rolldown/binding-darwin-arm64@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-YMuWPiQFfAKjhl5Iec5XnO3x3oHMkPXjbjXxVoD5+DD09IQ+TrHdvnI+oMiPWn/NkYQ8wgA/7F0ziLu7LiPV0A==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@rolldown/binding-darwin-x64@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-tGDyP7jeE32OM4DJxpjd5w7hrbu1nERzVbhOPhkM/gEn0Kw5T0LCGxsqDLDiLi5LRYzTsEEkqzlDRu6IJ5bP4g==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@rolldown/binding-freebsd-x64@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-xGUr+4Fts1gIkkPqrD0MNv9Ks/on8c9WNgXIY2XVBBEpID0DVDJHotk+nzecPz3nT2tKeoiSxG/yi536Kb0V2A==}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@rolldown/binding-linux-arm-gnueabihf@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-MAAjP1mf+wr/x6OxjjFI87VhLYfo4WAbXnkasrIEeq5VouWhJBaKMflS1mb8v+aW0obU8/VAut4CMucXOounwA==}
+    cpu: [arm]
+    os: [linux]
+
+  '@rolldown/binding-linux-arm64-gnu@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-cXLbLpp25h0YqTPVbFsW8fpu5DUzHbBk5IIblL4rGWwPYYx8G73qFShzeKWHjOaNlOK1ge4ttHQ7UcWJ8eiE0g==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@rolldown/binding-linux-arm64-musl@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-fwdMTfmc//LBAwgavcrxuxREKIHPSPkzRCHGe69yWDu7bd42TYxXImHQ4IydddnoDFMBAwhZ0V2Mcdu0+AvDgg==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@rolldown/binding-linux-x64-gnu@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-k+BBr6wNlgTiPwUaDMQPo/44UwWimr7GNuZo5xF0dvIyiXj/Z792W2P+gpzo4OzKD1vHfty/SckQzlOMOQdwuw==}
+    cpu: [x64]
+    os: [linux]
+
+  '@rolldown/binding-linux-x64-musl@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-bsCM2wYdG3V3nj4Qe7A3lE/L8tLpExoSf4AmVOs95GMBKp2clvdKOarLuKrbtv6OBIX7c4Kmj2rhXHEM1Mn/Wg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@rolldown/binding-wasm32-wasi@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-eqG4PAUkM1696D4CUMDd/lrGjGNsfvzA4KtV6X3vlkkDiB2WnU7jYGrCq4lcFYNV2s1fd+pKK5B6csLX2+YTLQ==}
+    engines: {node: '>=14.21.3'}
+    cpu: [wasm32]
+
+  '@rolldown/binding-win32-arm64-msvc@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-6BCRtZHM0onpLGXHQ0aCqQwg78/toweeWlajQyFBeoWM0CFvCg7IwXOKT+TEnIfoTi1fP5kGRFGGdYPFzGEpIw==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@rolldown/binding-win32-ia32-msvc@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-z5GZ8YguJyJtEoBkh3glBEN+rA83f9mCTCsu1mtGAuTj5NYAAgMS8cjweOkF+H8ka9ExlMp6Et16DTuObmaXsA==}
+    cpu: [ia32]
+    os: [win32]
+
+  '@rolldown/binding-win32-x64-msvc@1.0.0-beta.3-commit.1910872':
+    resolution: {integrity: sha512-10UJFCG0g4y2TSCN4zvngQ37ks283dZqJJd/ZuRWy7oxaPEYcL0508hCJCIDyS2J7YZiGwpLly/vXKdBj+mutw==}
+    cpu: [x64]
+    os: [win32]
 
   '@rollup/plugin-alias@5.1.1':
     resolution: {integrity: sha512-PR9zDb+rOzkRb2VD+EuKB7UC41vU5DIwZ5qqCpk0KJudcWAyi8rvYOhS7+L5aZCspw1stTViLgN5v6FF1p5cgQ==}
@@ -3180,6 +3259,9 @@ packages:
     resolution: {integrity: sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==}
     engines: {node: '>=10.13.0'}
 
+  '@tybys/wasm-util@0.9.0':
+    resolution: {integrity: sha512-6+7nlbMVX/PVDCwaIQ8nTOPveOcFLSt8GcXdx8hD0bt39uWxYT88uXzqTd4fTvqta7oeUJqudepapKNt2DYJFw==}
+
   '@type-challenges/utils@0.1.1':
     resolution: {integrity: sha512-A7ljYfBM+FLw+NDyuYvGBJiCEV9c0lPWEAdzfOAkb3JFqfLl0Iv/WhWMMARHiRKlmmiD1g8gz/507yVvHdQUYA==}
 
@@ -3402,6 +3484,11 @@ packages:
 
   '@ungap/structured-clone@1.2.0':
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
+
+  '@valibot/to-json-schema@1.0.0-beta.5':
+    resolution: {integrity: sha512-8aI2sG98gWS+6YuIL3OMkg60sImhICPdZIFCV1XDyX8k6UOCX+MgXaeR3f2fDShuNXYHV46vcjWRpov8ojzDNw==}
+    peerDependencies:
+      valibot: ^1.0.0 || ^1.0.0-beta.5 || ^1.0.0-rc
 
   '@vitejs/longfilename-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@file:playground/optimize-deps/longfilename':
     resolution: {directory: playground/optimize-deps/longfilename, type: directory}
@@ -6441,19 +6528,21 @@ packages:
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
+  rolldown@1.0.0-beta.3-commit.1910872:
+    resolution: {integrity: sha512-jU3/NKR4f4ny6QMzWMeAn3QstjtELJX2mEXkoxuPlEGpVjlK6hlcNejyRqIju4xbUs+yWZAs4VJvX/xWawrp4w==}
+    hasBin: true
+    peerDependencies:
+      '@oxc-project/runtime': 0.51.0
+    peerDependenciesMeta:
+      '@oxc-project/runtime':
+        optional: true
+
   rollup-plugin-dts@6.1.1:
     resolution: {integrity: sha512-aSHRcJ6KG2IHIioYlvAOcEq6U99sVtqDDKVhnwt70rW6tsz3tv5OSjEiWcgzfsHdLyGXZ/3b/7b/+Za3Y6r1XA==}
     engines: {node: '>=16'}
     peerDependencies:
       rollup: ^3.29.4 || ^4
       typescript: ^4.5 || ^5.0
-
-  rollup-plugin-esbuild@6.1.1:
-    resolution: {integrity: sha512-CehMY9FAqJD5OUaE/Mi1r5z0kNeYxItmRO2zG4Qnv2qWKF09J2lTy5GUzjJR354ZPrLkCj4fiBN41lo8PzBUhw==}
-    engines: {node: '>=14.18.0'}
-    peerDependencies:
-      esbuild: '>=0.18.0'
-      rollup: ^1.20.0 || ^2.0.0 || ^3.0.0 || ^4.0.0
 
   rollup-plugin-license@3.5.3:
     resolution: {integrity: sha512-r3wImZSo2d6sEk9BRJtlzeI/upjyjnpthy06Fdl0EzqRrlg3ULb9KQR7xHJI0zuayW/8bchEXSF5dO6dha4OyA==}
@@ -7160,6 +7249,14 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
+  valibot@1.0.0-beta.14:
+    resolution: {integrity: sha512-tLyV2rE5QL6U29MFy3xt4AqMrn+/HErcp2ZThASnQvPMwfSozjV1uBGKIGiegtZIGjinJqn0SlBdannf18wENA==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   validate-npm-package-license@3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}
 
@@ -7508,7 +7605,7 @@ snapshots:
   '@babel/generator@7.26.2':
     dependencies:
       '@babel/parser': 7.26.7
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
       jsesc: 3.0.2
@@ -7523,7 +7620,7 @@ snapshots:
 
   '@babel/helper-annotate-as-pure@7.25.9':
     dependencies:
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
 
   '@babel/helper-compilation-targets@7.26.5':
     dependencies:
@@ -7567,7 +7664,7 @@ snapshots:
   '@babel/helper-member-expression-to-functions@7.25.9':
     dependencies:
       '@babel/traverse': 7.25.9
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
     transitivePeerDependencies:
       - supports-color
 
@@ -7589,7 +7686,7 @@ snapshots:
 
   '@babel/helper-optimise-call-expression@7.25.9':
     dependencies:
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
 
   '@babel/helper-plugin-utils@7.26.5': {}
 
@@ -7614,7 +7711,7 @@ snapshots:
   '@babel/helper-skip-transparent-expression-wrappers@7.25.9':
     dependencies:
       '@babel/traverse': 7.25.9
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
     transitivePeerDependencies:
       - supports-color
 
@@ -7628,7 +7725,7 @@ snapshots:
     dependencies:
       '@babel/template': 7.25.9
       '@babel/traverse': 7.25.9
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
     transitivePeerDependencies:
       - supports-color
 
@@ -8115,7 +8212,7 @@ snapshots:
       '@babel/generator': 7.26.2
       '@babel/parser': 7.26.7
       '@babel/template': 7.25.9
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
       debug: 4.4.0
       globals: 11.12.0
     transitivePeerDependencies:
@@ -8193,6 +8290,22 @@ snapshots:
       algoliasearch: 5.20.0
     transitivePeerDependencies:
       - '@algolia/client-search'
+
+  '@emnapi/core@1.3.1':
+    dependencies:
+      '@emnapi/wasi-threads': 1.0.1
+      tslib: 2.8.1
+    optional: true
+
+  '@emnapi/runtime@1.3.1':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
+  '@emnapi/wasi-threads@1.0.1':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
 
   '@esbuild/aix-ppc64@0.23.1':
     optional: true
@@ -8488,6 +8601,13 @@ snapshots:
       - encoding
       - supports-color
 
+  '@napi-rs/wasm-runtime@0.2.5':
+    dependencies:
+      '@emnapi/core': 1.3.1
+      '@emnapi/runtime': 1.3.1
+      '@tybys/wasm-util': 0.9.0
+    optional: true
+
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -8499,6 +8619,10 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
+
+  '@oxc-project/runtime@0.51.0': {}
+
+  '@oxc-project/types@0.51.0': {}
 
   '@parcel/watcher-android-arm64@2.5.0':
     optional: true
@@ -8569,6 +8693,44 @@ snapshots:
   '@polka/url@1.0.0-next.28': {}
 
   '@publint/pack@0.1.1': {}
+
+  '@rolldown/binding-darwin-arm64@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-darwin-x64@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-freebsd-x64@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-linux-arm-gnueabihf@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-linux-arm64-gnu@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-linux-arm64-musl@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-linux-x64-gnu@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-linux-x64-musl@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-wasm32-wasi@1.0.0-beta.3-commit.1910872':
+    dependencies:
+      '@napi-rs/wasm-runtime': 0.2.5
+    optional: true
+
+  '@rolldown/binding-win32-arm64-msvc@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-win32-ia32-msvc@1.0.0-beta.3-commit.1910872':
+    optional: true
+
+  '@rolldown/binding-win32-x64-msvc@1.0.0-beta.3-commit.1910872':
+    optional: true
 
   '@rollup/plugin-alias@5.1.1(rollup@4.30.1)':
     optionalDependencies:
@@ -8858,6 +9020,11 @@ snapshots:
 
   '@trysound/sax@0.2.0': {}
 
+  '@tybys/wasm-util@0.9.0':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
   '@type-challenges/utils@0.1.1': {}
 
   '@types/babel__core@7.20.5':
@@ -8870,18 +9037,18 @@ snapshots:
 
   '@types/babel__generator@7.6.8':
     dependencies:
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
 
   '@types/babel__preset-env@7.10.0': {}
 
   '@types/babel__template@7.4.4':
     dependencies:
       '@babel/parser': 7.26.7
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
 
   '@types/babel__traverse@7.20.6':
     dependencies:
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
 
   '@types/body-parser@1.19.5':
     dependencies:
@@ -9137,6 +9304,10 @@ snapshots:
       - supports-color
 
   '@ungap/structured-clone@1.2.0': {}
+
+  '@valibot/to-json-schema@1.0.0-beta.5(valibot@1.0.0-beta.14(typescript@5.7.2))':
+    dependencies:
+      valibot: 1.0.0-beta.14(typescript@5.7.2)
 
   '@vitejs/longfilename-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@file:playground/optimize-deps/longfilename': {}
 
@@ -9731,7 +9902,7 @@ snapshots:
 
   babel-walk@3.0.0-canary-5:
     dependencies:
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
 
   balanced-match@1.0.2: {}
 
@@ -9949,7 +10120,7 @@ snapshots:
   constantinople@4.0.1:
     dependencies:
       '@babel/parser': 7.26.7
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
 
   content-disposition@1.0.0:
     dependencies:
@@ -12368,6 +12539,28 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
+  rolldown@1.0.0-beta.3-commit.1910872(@oxc-project/runtime@0.51.0)(typescript@5.7.2):
+    dependencies:
+      '@oxc-project/types': 0.51.0
+      '@valibot/to-json-schema': 1.0.0-beta.5(valibot@1.0.0-beta.14(typescript@5.7.2))
+      valibot: 1.0.0-beta.14(typescript@5.7.2)
+    optionalDependencies:
+      '@oxc-project/runtime': 0.51.0
+      '@rolldown/binding-darwin-arm64': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-darwin-x64': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-freebsd-x64': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-linux-arm-gnueabihf': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-linux-arm64-gnu': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-linux-arm64-musl': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-linux-x64-gnu': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-linux-x64-musl': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-wasm32-wasi': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-win32-arm64-msvc': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-win32-ia32-msvc': 1.0.0-beta.3-commit.1910872
+      '@rolldown/binding-win32-x64-msvc': 1.0.0-beta.3-commit.1910872
+    transitivePeerDependencies:
+      - typescript
+
   rollup-plugin-dts@6.1.1(rollup@4.30.1)(typescript@5.7.2):
     dependencies:
       magic-string: 0.30.17
@@ -12375,17 +12568,6 @@ snapshots:
       typescript: 5.7.2
     optionalDependencies:
       '@babel/code-frame': 7.26.2
-
-  rollup-plugin-esbuild@6.1.1(esbuild@0.24.2)(rollup@4.30.1):
-    dependencies:
-      '@rollup/pluginutils': 5.1.4(rollup@4.30.1)
-      debug: 4.4.0
-      es-module-lexer: 1.6.0
-      esbuild: 0.24.2
-      get-tsconfig: 4.8.1
-      rollup: 4.30.1
-    transitivePeerDependencies:
-      - supports-color
 
   rollup-plugin-license@3.5.3(picomatch@4.0.2)(rollup@4.30.1):
     dependencies:
@@ -13142,6 +13324,10 @@ snapshots:
 
   utils-merge@1.0.1: {}
 
+  valibot@1.0.0-beta.14(typescript@5.7.2):
+    optionalDependencies:
+      typescript: 5.7.2
+
   validate-npm-package-license@3.0.4:
     dependencies:
       spdx-correct: 3.2.0
@@ -13308,7 +13494,7 @@ snapshots:
   with@7.0.2:
     dependencies:
       '@babel/parser': 7.26.7
-      '@babel/types': 7.26.5
+      '@babel/types': 7.26.7
       assert-never: 1.3.0
       babel-walk: 3.0.0-canary-5
 
