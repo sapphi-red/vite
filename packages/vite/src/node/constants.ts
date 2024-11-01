@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs'
 import type { RollupPluginHooks } from './typeUtils'
 
 const { version } = JSON.parse(
-  readFileSync(new URL('../../package.json', import.meta.url)).toString(),
+  // TODO: fixme don't depend on file structure
+  readFileSync(new URL('../../../package.json', import.meta.url)).toString(),
 )
 
 export const ROLLUP_HOOKS = [
@@ -110,9 +111,9 @@ export const FS_PREFIX = `/@fs/`
 export const CLIENT_PUBLIC_PATH = `/@vite/client`
 export const ENV_PUBLIC_PATH = `/@vite/env`
 export const VITE_PACKAGE_DIR = resolve(
-  // import.meta.url is `dist/node/constants.js` after bundle
+  // import.meta.url is `dist/node/chunks/constants.js` after bundle
   fileURLToPath(import.meta.url),
-  '../../..',
+  '../../../..',
 )
 
 export const CLIENT_ENTRY = resolve(VITE_PACKAGE_DIR, 'dist/client/client.mjs')
