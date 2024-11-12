@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import module from 'node:module'
 import MagicString from 'magic-string'
 import type { Plugin } from 'rolldown'
 import { defineConfig } from 'rolldown'
@@ -38,10 +37,16 @@ const clientConfig = defineConfig({
 const sharedNodeOptions = defineConfig({
   platform: 'node',
   treeshake: {
-    // NOTE: https://github.com/rolldown/rolldown/issues/2606
-    moduleSideEffects: new RegExp(
-      `^((?!${['acorn', 'astring', ...Object.keys(pkg.dependencies), ...module.builtinModules.flatMap((m) => [m, `node:${m}`])].join('|')}).)*$`,
-    ),
+    moduleSideEffects: [
+      {
+        test: /acorn|astring/,
+        sideEffects: false,
+      },
+      {
+        external: true,
+        sideEffects: false,
+      },
+    ],
     // TODO: not supported
     //   propertyReadSideEffects: false,
     //   tryCatchDeoptimization: false,
@@ -151,10 +156,6 @@ const moduleRunnerConfig = defineConfig({
 
 const cjsConfig = defineConfig({
   ...sharedNodeOptions,
-  define: {
-    // TODO: https://github.com/rolldown/rolldown/issues/2609
-    'import.meta.url': "require('u' + 'rl').pathToFileURL(__filename).href",
-  },
   input: {
     publicUtils: path.resolve(__dirname, 'src/node/publicUtils.ts'),
   },
