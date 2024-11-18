@@ -109,7 +109,6 @@
     "connect": "^3.7.0",
     "convert-source-map": "^2.0.0",
     "cors": "^2.8.5",
-    "cross-env": "^7.0.3",
     "cross-spawn": "^7.0.5",
     "debug": "^4.3.7",
     "dep-types": "link:./src/types",
