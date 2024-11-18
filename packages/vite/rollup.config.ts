@@ -128,7 +128,6 @@ const nodeConfig = defineConfig({
         },
       ],
     }),
-    // TODO: https://github.com/rolldown/rolldown/issues/2686
     licensePlugin(
       path.resolve(__dirname, 'LICENSE.md'),
       'Vite core license',
