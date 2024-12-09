@@ -82,7 +82,7 @@ import {
   urlRE,
 } from '../utils'
 import type { Logger } from '../logger'
-import { cleanUrl, slash } from '../../shared/utils'
+import { cleanUrl, isWindows, slash } from '../../shared/utils'
 import { createBackCompatIdResolver } from '../idResolver'
 import type { ResolveIdFn } from '../idResolver'
 import { PartialEnvironment } from '../baseEnvironment'
@@ -1163,7 +1163,10 @@ function createCSSResolvers(config: ResolvedConfig): CSSAtImportResolvers {
         })
         sassResolve = async (...args) => {
           if (args[1].startsWith('file://')) {
-            args[1] = fileURLToPath(args[1])
+            args[1] = fileURLToPath(args[1], {
+              windows:
+                isWindows && args[1].startsWith('file:///') ? false : undefined,
+            })
           }
           return resolver(...args)
         }
