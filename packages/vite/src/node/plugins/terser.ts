@@ -45,8 +45,10 @@ export function terserPlugin(config: ResolvedConfig): Plugin {
           options: Terser.MinifyOptions,
         ) => {
           // test fails when using `import`. maybe related: https://github.com/nodejs/node/issues/43205
-          // eslint-disable-next-line no-restricted-globals -- this function runs inside cjs
-          const terser = require(terserPath)
+          // escape require with eval: https://github.com/rolldown/rolldown/issues/2684
+          // this function runs inside a cjs worker
+          const req = eval('require')
+          const terser = req(terserPath)
           return terser.minify(code, options) as Terser.MinifyOutput
         },
       {

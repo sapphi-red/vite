@@ -60,10 +60,6 @@ const sharedNodeOptions = defineConfig({
     externalLiveBindings: false,
     // NOTE: probably not needed for rolldown
     // freeze: false,
-
-    // TODO: https://github.com/rolldown/rolldown/issues/2685, https://github.com/rolldown/rolldown/issues/3395
-    banner:
-      "import { createRequire as ___createRequire } from 'module'; const require = ___createRequire(import.meta.url);",
   },
   onwarn(warning, warn) {
     if (warning.message.includes('Circular dependency')) {
@@ -90,7 +86,6 @@ const nodeConfig = defineConfig({
     'supports-color',
     'utf-8-validate', // ws
     'bufferutil', // ws
-    'typescript', // TODO: not used in output but gets bundled without this https://github.com/rolldown/rolldown/issues/2604
     ...Object.keys(pkg.dependencies),
     ...Object.keys(pkg.peerDependencies),
   ],
@@ -141,7 +136,7 @@ const nodeConfig = defineConfig({
       path.resolve(__dirname, 'LICENSE.md'),
       'Vite core license',
       'Vite',
-    ),
+    ) as Plugin,
   ],
 })
 
@@ -174,7 +169,7 @@ const cjsConfig = defineConfig({
     chunkFileNames: 'node-cjs/chunks/dep-[hash].js',
     format: 'cjs',
     banner: undefined,
-    target: 'es2022' // TODO: use node18
+    target: 'es2022', // TODO: use node18
   },
   external: ['fsevents', 'supports-color', ...Object.keys(pkg.dependencies)],
   plugins: [bundleSizeLimit(175), exportCheck()],

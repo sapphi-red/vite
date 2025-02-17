@@ -2287,13 +2287,11 @@ const makeScssWorker = (
           additionalData: undefined
         },
       ) => {
-        // eslint-disable-next-line no-restricted-globals -- this function runs inside a cjs worker
-        const sass: typeof Sass = require(sassPath)
-        // escape with require.resolve: https://github.com/rolldown/rolldown/issues/2684
-        // eslint-disable-next-line no-restricted-globals
-        const path: typeof import('node:path') = require(
-          require.resolve('node:path'),
-        )
+        // escape require with eval: https://github.com/rolldown/rolldown/issues/2684
+        // this function runs inside a cjs worker
+        const req = eval('require')
+        const sass: typeof Sass = req(sassPath)
+        const path: typeof import('node:path') = req('node:path')
 
         // NOTE: `sass` always runs it's own importer first, and only falls back to
         // the `importer` option when it can't resolve a path
@@ -2406,17 +2404,14 @@ const makeModernScssWorker = (
           additionalData: undefined
         },
       ) => {
-        // eslint-disable-next-line no-restricted-globals -- this function runs inside a cjs worker
-        const sass: typeof Sass = require(sassPath)
-        // escape with require.resolve: https://github.com/rolldown/rolldown/issues/2684
-        const path: typeof import('node:path') =
-          // eslint-disable-next-line no-restricted-globals
-          require(require.resolve('node:path'))
+        // escape require with eval: https://github.com/rolldown/rolldown/issues/2684
+        // this function runs inside a cjs worker
+        const req = eval('require')
+        const sass: typeof Sass = req(sassPath)
+        const path: typeof import('node:path') = req('node:path')
 
-        // escape with require.resolve: https://github.com/rolldown/rolldown/issues/2684
         const { fileURLToPath, pathToFileURL }: typeof import('node:url') =
-          // eslint-disable-next-line no-restricted-globals
-          require(require.resolve('node:url'))
+          req('node:url')
 
         const sassOptions = { ...options } as Sass.StringOptions<'async'>
         sassOptions.url = pathToFileURL(options.filename)
@@ -2814,12 +2809,11 @@ const makeLessWorker = (
 
   const worker = new WorkerWithFallback(
     () => {
-      // escape with require.resolve: https://github.com/rolldown/rolldown/issues/2684
-      // eslint-disable-next-line no-restricted-globals -- this function runs inside a cjs worker
-      const fsp = require(require.resolve('node:fs/promises'))
-      // escape with require.resolve: https://github.com/rolldown/rolldown/issues/2684
-      // eslint-disable-next-line no-restricted-globals
-      const path = require(require.resolve('node:path'))
+      // escape require with eval: https://github.com/rolldown/rolldown/issues/2684
+      // this function runs inside a cjs worker
+      const req = eval('require')
+      const fsp = req('node:fs/promises')
+      const path = req('node:path')
 
       let ViteLessManager: any
       const createViteLessPlugin = (
@@ -2880,8 +2874,10 @@ const makeLessWorker = (
           additionalData: undefined
         },
       ) => {
-        // eslint-disable-next-line no-restricted-globals -- this function runs inside a cjs worker
-        const nodeLess: typeof Less = require(lessPath)
+        // escape require with eval: https://github.com/rolldown/rolldown/issues/2684
+        // this function runs inside a cjs worker
+        const req = eval('require')
+        const nodeLess: typeof Less = req(lessPath)
         const viteResolverPlugin = createViteLessPlugin(
           nodeLess,
           options.filename,
@@ -3001,8 +2997,10 @@ const makeStylWorker = (maxWorkers: number | undefined) => {
           additionalData: undefined
         },
       ) => {
-        // eslint-disable-next-line no-restricted-globals -- this function runs inside a cjs worker
-        const nodeStylus: typeof Stylus = require(stylusPath)
+        // escape require with eval: https://github.com/rolldown/rolldown/issues/2684
+        // this function runs inside a cjs worker
+        const req = eval('require')
+        const nodeStylus: typeof Stylus = req(stylusPath)
 
         const ref = nodeStylus(content, {
           // support @import from node dependencies by default
