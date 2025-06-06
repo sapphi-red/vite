@@ -7,17 +7,19 @@ import type {
   PluginContext,
   RenderedChunk,
 } from 'rolldown'
-import { parseAst } from 'rolldown/parseAst'
 import { dts } from 'rolldown-plugin-dts'
-import { parse as parseWithBabel } from '@babel/parser'
 import { walk } from 'estree-walker'
 import MagicString from 'magic-string'
 import type {
+  Comment,
   Directive,
   ModuleExportName,
+  Node,
   Program,
   Statement,
-} from '@oxc-project/types'
+} from 'oxc-parser'
+import { parseSync } from 'oxc-parser'
+import { attachComments } from 'estree-util-attach-comments'
 
 const pkg = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url)).toString(),
@@ -138,8 +140,16 @@ function patchTypes(): Plugin {
         for (const chunk of Object.values(bundle)) {
           if (chunk.type !== 'chunk') continue
 
-          const ast = parseAst(chunk.code, { lang: 'ts', sourceType: 'module' })
-          const importBindings = getAllImportBindings(ast)
+          const parseResult = parseSync(chunk.fileName, chunk.code, {
+            lang: 'ts',
+            astType: 'js',
+            sourceType: 'module',
+          })
+          if (parseResult.errors.length > 0) {
+            this.error(new AggregateError(parseResult.errors))
+          }
+
+          const importBindings = getAllImportBindings(parseResult.program)
           if (
             chunk.fileName.startsWith('module-runner') ||
             // index and moduleRunner have a common chunk
@@ -345,15 +355,19 @@ function replaceConfusingTypeNames(
 function stripInternalTypes(this: PluginContext, chunk: OutputChunk) {
   if (chunk.code.includes('@internal')) {
     const s = new MagicString(chunk.code)
-    // need to parse with babel to get the comments
-    const ast = parseWithBabel(chunk.code, {
-      plugins: ['typescript'],
+    const parseResult = parseSync(chunk.fileName, chunk.code, {
+      lang: 'ts',
+      astType: 'js',
       sourceType: 'module',
     })
+    if (parseResult.errors.length > 0) {
+      this.error(new AggregateError(parseResult.errors))
+    }
+    attachComments(parseResult.program as any, parseResult.comments)
 
-    walk(ast as any, {
-      enter(node: any) {
-        if (removeInternal(s, node)) {
+    walk(parseResult.program as any, {
+      enter(node) {
+        if (removeInternal(s, node as any)) {
           this.skip()
         }
       },
@@ -372,11 +386,14 @@ function stripInternalTypes(this: PluginContext, chunk: OutputChunk) {
  * Remove `@internal` comments not handled by `compilerOptions.stripInternal`
  * Reference: https://github.com/vuejs/core/blob/main/rollup.dts.config.js
  */
-function removeInternal(s: MagicString, node: any): boolean {
+function removeInternal(
+  s: MagicString,
+  node: Node & { comments: Comment[] },
+): boolean {
   if (
-    node.leadingComments &&
-    node.leadingComments.some((c: any) => {
-      return c.type === 'CommentBlock' && c.value.includes('@internal')
+    node.comments &&
+    node.comments.some((c: any) => {
+      return c.type === 'Block' && c.leading && c.value.includes('@internal')
     })
   ) {
     // Examples:
@@ -388,7 +405,7 @@ function removeInternal(s: MagicString, node: any): boolean {
     const trailingRe = /\s*[,|]/y
     trailingRe.lastIndex = node.end
     const trailingStr = trailingRe.exec(s.original)?.[0] ?? ''
-    s.remove(node.leadingComments[0].start, node.end + trailingStr.length)
+    s.remove(node.comments[0].start, node.end + trailingStr.length)
     return true
   }
   return false

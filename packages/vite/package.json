@@ -92,10 +92,8 @@
     "fsevents": "~2.3.3"
   },
   "devDependencies": {
-    "@babel/parser": "^7.28.5",
     "@jridgewell/remapping": "^2.3.5",
     "@jridgewell/trace-mapping": "^0.3.31",
-    "@oxc-project/types": "0.95.0",
     "@polka/compression": "^1.0.0-next.25",
     "@rolldown/pluginutils": "^1.0.0-beta.44",
     "@rollup/plugin-alias": "^5.1.1",
@@ -117,6 +115,7 @@
     "dotenv-expand": "^12.0.3",
     "es-module-lexer": "^1.7.0",
     "escape-html": "^1.0.3",
+    "estree-util-attach-comments": "^3.0.0",
     "estree-walker": "^3.0.3",
     "etag": "^1.8.1",
     "host-validation-middleware": "^0.1.2",
@@ -128,6 +127,7 @@
     "mrmime": "^2.0.1",
     "nanoid": "^5.1.6",
     "open": "^10.2.0",
+    "oxc-parser": "^0.95.0",
     "parse5": "^8.0.0",
     "pathe": "^2.0.3",
     "periscopic": "^4.0.2",
