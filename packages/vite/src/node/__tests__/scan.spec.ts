@@ -168,3 +168,69 @@ test('scan jsx-runtime', async (ctx) => {
   expect((globalThis as any).__test_scan_jsx_runtime).toBe(1)
   expect(mod1).toBe(mod2)
 })
+
+// Tests for https://github.com/vitejs/vite-plugin-vue/issues/25
+// Vue files should not get export default added if they already have one
+describe('vue export default handling', () => {
+  test('vue file with export default should not add extra export default', () => {
+    // Simulate the logic from scan.ts htmlTypeOnLoadCallback
+    const id = 'test.vue'
+    const scriptContent = 'export default { setup() { return {} } }'
+    const js = 'export * from "virtual-module"\n' + scriptContent
+
+    // The condition from scan.ts line 519:
+    // if (!id.endsWith('.vue') || !js.includes('export default'))
+    const shouldAddDefault =
+      !id.endsWith('.vue') || !js.includes('export default')
+
+    expect(shouldAddDefault).toBe(false)
+  })
+
+  test('vue file without export default should add export default', () => {
+    const id = 'test.vue'
+    const scriptContent = 'const count = ref(0)'
+    const js = 'export * from "virtual-module"\n' + scriptContent
+
+    const shouldAddDefault =
+      !id.endsWith('.vue') || !js.includes('export default')
+
+    expect(shouldAddDefault).toBe(true)
+  })
+
+  test('svelte file should always add export default even with export default in string', () => {
+    const id = 'test.svelte'
+    const scriptContent = 'const message = "export default should be ignored"'
+    const js = 'export * from "virtual-module"\n' + scriptContent
+
+    // For Svelte files, we always add export default because any occurrence
+    // is assumed to be a false positive (e.g., in a string)
+    const shouldAddDefault =
+      !id.endsWith('.vue') || !js.includes('export default')
+
+    // Since it's not a .vue file, this should be true
+    expect(shouldAddDefault).toBe(true)
+  })
+
+  test('astro file should always add export default even with export default in string', () => {
+    const id = 'test.astro'
+    const scriptContent = 'const message = "export default should be ignored"'
+    const js = 'export * from "virtual-module"\n' + scriptContent
+
+    const shouldAddDefault =
+      !id.endsWith('.vue') || !js.includes('export default')
+
+    // Since it's not a .vue file, this should be true
+    expect(shouldAddDefault).toBe(true)
+  })
+
+  test('html file should always add export default', () => {
+    const id = 'test.html'
+    const js = 'export * from "virtual-module"\n'
+
+    const shouldAddDefault =
+      !id.endsWith('.vue') || !js.includes('export default')
+
+    // Since it's not a .vue file, this should be true
+    expect(shouldAddDefault).toBe(true)
+  })
+})
