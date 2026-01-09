@@ -8,12 +8,12 @@
   "packageRules": [
     {
       "matchDepTypes": ["peerDependencies"],
-      "enabled": false,
+      "enabled": false
     },
     {
       "matchDepTypes": ["action"],
       "pinDigests": true,
-      "matchPackageNames": ["!actions/{/,}**", "!github/{/,}**"],
+      "matchPackageNames": ["!actions/{/,}**", "!github/{/,}**"]
     },
     {
       "groupName": "rolldown-related dependencies",
@@ -22,9 +22,9 @@
         "rolldown-plugin-dts",
         "tsdown",
         "@oxc-project/*",
-        "oxc-*",
-      ],
-    },
+        "oxc-*"
+      ]
+    }
   ],
   "ignoreDeps": [
     // manually bumping
@@ -44,7 +44,7 @@
     "kill-port", // `kill-port:^2.0.0 has perf issues (#8392)
 
     // v1 is a drop-in replacement for debug, while v2 introduces breaking changes
-    "obug",
+    "obug"
   ],
   "github-actions": {
     "managerFilePatterns": [
@@ -52,16 +52,16 @@
       "/(^|/)(workflow-templates|\\.(?:github|gitea|forgejo)/(?:workflows|actions))/.+\\.ya?ml$/",
       "/(^|/)action\\.ya?ml$/",
       // custom value
-      "/(^|/)docs/guide/static-deploy-github-pages\\.yaml$/",
-    ],
+      "/(^|/)docs/guide/static-deploy-github-pages\\.yaml$/"
+    ]
   },
   "customManagers": [
     {
       "customType": "regex",
       "managerFilePatterns": ["/packages/create-vite/src/index\\.ts$/"],
       "matchStrings": [
-        "//\\s*renovate:\\s+datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+(?:var|let|const)\\s+\\S+\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']",
-      ],
-    },
-  ],
+        "//\\s*renovate:\\s+datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+(?:var|let|const)\\s+\\S+\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']"
+      ]
+    }
+  ]
 }
